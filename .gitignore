@@ -1,0 +1,11 @@
+# ignore it all
+*
+
+# but not these dotfiles
+!.gitignore
+!.bashrc
+!.bash_aliases
+!.bash_funcs
+!.tmux.conf
+!goog.vim
+
