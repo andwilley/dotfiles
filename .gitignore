@@ -1,5 +1,5 @@
 # ignore it all
-*
+/*
 
 # but not these dotfiles
 !.gitignore
@@ -8,4 +8,5 @@
 !.bash_funcs
 !.tmux.conf
 !goog.vim
-
+!/.tmux/plugins/tpm
+/.tmux/resurrect
