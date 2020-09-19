@@ -3,6 +3,7 @@
 
 # but not these dotfiles
 !.gitignore
+!.gitconfig
 !.bashrc
 !.bash_aliases
 !.bash_funcs
