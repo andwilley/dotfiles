@@ -1,25 +1,25 @@
 [user]
-	email = andwilley@gmail.com
-	name = Drew Willey
+    email = andwilley@gmail.com
+    name = Drew Willey
 [push]
-	default = simple
+    default = simple
 [core]
-	editor = vim
-	excludesfile = /home/rafiki/.gitignore_global
+    editor = vim
+    excludesfile = /home/rafiki/.gitignore_global
 [diff]
     tool = default-difftool
 [difftool "default-difftool"]
     cmd = code --wait --diff $LOCAL $REMOTE
 [mergetool]
-	keepBackup = false
+    keepBackup = false
+    prompt = false
 [merge]
-	tool = vimdiff
-	conflictstyle = diff3
-	tool = prompt
+    tool = vimdiff
+    conflictstyle = diff3
 [alias]
-	st = status
-	co = checkout
-	com = checkout master
-  cm = commit -m
-	br = branch
-	aa = add --all
+    st = status
+    co = checkout
+    com = checkout master
+    cm = commit -m
+    br = branch
+    aa = add --all
