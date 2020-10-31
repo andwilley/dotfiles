@@ -10,5 +10,6 @@
 !.bash_funcs
 !.tmux.conf
 !goog.vim
+!.bashgoodies
 !/.tmux/plugins/tpm
 /.tmux/resurrect
