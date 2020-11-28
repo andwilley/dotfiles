@@ -1,2 +1,13 @@
 sesh() { tmux new-session -A -s ${1:-sesh}; }
 
+mvndbrun() {
+  port=${1:-8000}
+  echo "using port $port"
+  mvn spring-boot:run -Drun.profiles=dev -Dspring-boot.run.jvmArguments="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=$port"
+}
+
+mvndbtest() {
+  port=${1:-8000}
+  echo "using port $port"
+  mvn -Dmaven.surefire.debug="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=$port -Xnoagent -Djava.compiler=NONE" test
+}
