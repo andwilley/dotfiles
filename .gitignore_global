@@ -4,5 +4,5 @@
 /Session.vim
 gmon.out
 .ackrc
-.vimspector.json
+/.vimspector.json
 
