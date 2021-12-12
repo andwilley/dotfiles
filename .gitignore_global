@@ -1,6 +1,8 @@
 /tags
 *.swp
+*.swo
 /Session.vim
 gmon.out
 .ackrc
+/.vimspector.json
 
