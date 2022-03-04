@@ -9,6 +9,7 @@
 !.bash_aliases
 !.bash_funcs
 !.hgrc
+!.hgignore
 !.tmux.conf
 !goog.vim
 !.bashgoodies
