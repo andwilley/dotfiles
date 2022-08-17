@@ -14,3 +14,4 @@ prevent-push-dirty=false
 ae = !hg amend && hg evolve
 aeu = !hg amend && hg evolve && hg uc
 au = !hg amend && hg uc
+cn = commit --name
