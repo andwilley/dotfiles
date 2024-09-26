@@ -13,6 +13,6 @@ prevent-push-dirty=false
 [alias]
 ae = !hg amend && hg evolve
 aeu = !hg amend && hg evolve && hg uc
-aeut = !hg amend && hg evolve && hg uc -r tip
+aeut = !hg amend && hg evolve && hg upload tree
 au = !hg amend && hg uc
 cn = commit --name
