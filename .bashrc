@@ -95,33 +95,13 @@ export PATH=$PATH:~/.local/bin
 export GOPATH=$HOME/go
 export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin
 
+# Add homebrew to path if it exists
+if [ -f /opt/homebrew/bin ]; then
+    export PATH=$PATH:/opt/homebrew/bin/brew
+fi
+
 # MPW env variables
 export MPW_FULLNAME="Andrew Willey"
-
-# Alias definitions (load both)
-if [ -f ~/.goog/.bash_aliases ]; then
-    . ~/.goog/.bash_aliases
-fi
-if [ -f ~/.bashgoodies/.bash_aliases ]; then
-    . ~/.bashgoodies/.bash_aliases
-fi
-
-# Bash functions (only load work or not work)
-if [ -f ~/.goog/.bash_funcs ]; then
-    . ~/.goog/.bash_funcs
-elif [ -f ~/.bashgoodies/.bash_funcs ]; then
-    . ~/.bashgoodies/.bash_funcs
-fi
-
-# Bash promp make more goodly.
-if [ -f ~/.bashgoodies/.bash_prompt ]; then
-    . ~/.bashgoodies/.bash_prompt
-fi
-
-# Local non-version controlled stuff
-if [ -f ~/.local/bash/local ]; then
-    . ~/.local/bash/local
-fi
 
 # enable programmable completion features (you don't need to enable
 # this, if it's already enabled in /etc/bash.bashrc and /etc/profile
