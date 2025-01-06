@@ -6,6 +6,7 @@
 !.gitignore_global
 !.gitconfig
 !.bashrc
+!.inputrc
 !.bash_aliases
 !.bash_funcs
 !.hgrc

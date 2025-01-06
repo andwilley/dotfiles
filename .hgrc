@@ -12,5 +12,6 @@ prevent-push-dirty=false
 
 [alias]
 ae = !hg amend && hg evolve
-aeu = !hg amend && hg evolve && hg uc
-au = !hg amend && hg uc
+aeu = !hg amend && hg evolve && hg upload tree
+au = !hg amend && hg upload tree
+cn = commit --name
