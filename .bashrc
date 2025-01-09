@@ -106,6 +106,9 @@ if [ -f /opt/homebrew/bin ]; then
     export PATH=$PATH:/opt/homebrew/bin/brew
 fi
 
+# LUA setup
+export PATH=$PATH:$HOME/apps/lua-language-server/bin
+
 # MPW env variables
 export MPW_FULLNAME="Andrew Willey"
 
