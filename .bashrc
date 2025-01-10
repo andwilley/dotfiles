@@ -102,8 +102,8 @@ export GOPATH=$HOME/go
 export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin
 
 # Add homebrew to path if it exists
-if [ -f /opt/homebrew/bin ]; then
-    export PATH=$PATH:/opt/homebrew/bin/brew
+if [ -d /opt/homebrew/bin ]; then
+    export PATH=$PATH:/opt/homebrew/bin
 fi
 
 # MPW env variables
