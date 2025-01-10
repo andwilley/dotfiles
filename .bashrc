@@ -16,6 +16,10 @@ HISTCONTROL=ignoreboth
 # Vim motion and edit CLI in buffer
 set -o vi
 
+# nvim for all UI
+export VISUAL=nvim
+export EDITOR="$VISUAL"
+
 # Better cli history search:
 bind -f ~/.inputrc
 

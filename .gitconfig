@@ -4,18 +4,20 @@
 [push]
     default = simple
 [core]
-    editor = vim
+    editor = nvim
     excludesfile = ~/.gitignore_global
 [diff]
-    tool = default-difftool
-[difftool "default-difftool"]
-    cmd = code --wait --diff $LOCAL $REMOTE
-[mergetool]
+    tool = nvim
+[difftool "nvim"]
+    prompt = false
+    cmd = nvim -d -R $LOCAL $REMOTE
+[merge]
+    tool = nvim
+    conflictstyle = diff3
+[mergetool "nvim"]
     keepBackup = false
     prompt = false
-[merge]
-    tool = vimdiff
-    conflictstyle = diff3
+    cmd = nvim -d -R $MERGED $LOCAL $BASE $REMOTE -c "wincmd J" -c "set modifiable" -c "set write"
 [alias]
     st = status
     co = checkout

@@ -1,11 +1,11 @@
 [ui]
-merge = vimdiff
+merge = nvim
 ignore = ~/.hgignore
 
 [merge-tools]
-vimdiff.executable = vimdiff
-vimdiff.args = -f -d $output -M $local $base $other -c "wincmd J" -c "set modifiable" -c "set write"
-vimdiff.premerge = keep-merge3
+nvim.executable = nvim
+nvim.args = -d -R $output $local $base $other -c "wincmd J" -c "set modifiable" -c "set write"
+nvim.premerge = keep-merge3
 
 [trainingwheels]
 prevent-push-dirty=false
