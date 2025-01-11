@@ -112,6 +112,8 @@ fi
 
 # LUA setup
 export PATH=$PATH:$HOME/apps/lua-language-server/bin
+# Rust setup
+export PATH=$PATH:$HOME/.cargo/bin
 
 # MPW env variables
 export MPW_FULLNAME="Andrew Willey"
