@@ -72,7 +72,6 @@ case "$TERM" in
 esac
 
 force_color_prompt=yes
-
 PS1="\[\033[01;32m\]\u@\h:\w\$(bpvcs_bash_prompt)\n\[\033[01;35m\]λ\[\033[00m\] "
 unset color_prompt force_color_prompt
 
