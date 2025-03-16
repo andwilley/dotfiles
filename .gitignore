@@ -2,6 +2,7 @@
 /*
 
 # but not these dotfiles
+!README.md
 !.gitignore
 !.gitignore_global
 !.gitconfig
