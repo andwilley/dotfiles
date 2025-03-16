@@ -58,6 +58,15 @@ if [ -f ~/.local/bash/local ]; then
     . ~/.local/bash/local
 fi
 
+if [ -x /usr/bin/dircolors ]; then
+    test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
+    alias ls='ls --color=auto'
+fi
+if [ -x /opt/homebrew/bin/gdircolors ]; then
+    test -r ~/.dircolors && eval "$(gdircolors -b ~/.dircolors)" || eval "$(gdircolors -b)"
+    alias ls='ls --color=auto'
+fi
+
 # turn off <C-s> functionality
 stty -ixon
 
