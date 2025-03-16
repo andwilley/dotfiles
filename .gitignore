@@ -14,5 +14,7 @@
 !.tmux.conf
 !goog.vim
 !.bashgoodies
+!/.config
+/.config/*
+!/.config/starship.toml
 !/.tmux/plugins/tpm
-/.tmux/resurrect

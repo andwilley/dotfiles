@@ -38,9 +38,6 @@ shopt -s checkwinsize
 # match all files and zero or more directories and subdirectories.
 #shopt -s globstar
 
-# make less more friendly for non-text input files, see lesspipe(1)
-[ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
-
 # Alias definitions (load both)
 if [ -f ~/.goog/.bash_aliases ]; then
     . ~/.goog/.bash_aliases
@@ -56,43 +53,10 @@ elif [ -f ~/.bashgoodies/.bash_funcs ]; then
     . ~/.bashgoodies/.bash_funcs
 fi
 
-# Bash promp make more goodly.
-if [ -f ~/.bashgoodies/.bash_prompt ]; then
-    . ~/.bashgoodies/.bash_prompt
-fi
-
 # Local non-version controlled stuff
 if [ -f ~/.local/bash/local ]; then
     . ~/.local/bash/local
 fi
-
-# set a fancy prompt (non-color, unless we know we "want" color)
-case "$TERM" in
-    xterm-color|xterm-256color) color_prompt=yes;;
-esac
-
-force_color_prompt=yes
-PS1="\[\033[01;32m\]\u@\h:\w\$(bpvcs_bash_prompt)\n\[\033[01;35m\]λ\[\033[00m\] "
-unset color_prompt force_color_prompt
-
-# enable color support of ls and also add handy aliases
-if [ -x /usr/bin/dircolors ]; then
-    test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
-    alias ls='ls --color=auto'
-
-    alias grep='grep --color=auto'
-    alias fgrep='fgrep --color=auto'
-    alias egrep='egrep --color=auto'
-fi
-
-# some more ls aliases
-alias ll='ls -alF'
-alias la='ls -A'
-alias l='ls -CF'
-
-# Add an "alert" alias for long running commands.  Use like so:
-#   sleep 10; alert
-alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
 
 # turn off <C-s> functionality
 stty -ixon
@@ -127,6 +91,9 @@ if ! shopt -oq posix; then
     . /etc/bash_completion
   fi
 fi
+
+# nice bash
+eval "$(starship init bash)"
 
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
