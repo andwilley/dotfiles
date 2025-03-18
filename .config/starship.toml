@@ -160,6 +160,7 @@ format = '\[[$symbol$stack]($style)\]'
 format = '\[[$symbol]($style)\]'
 
 [python]
+disabled = true
 format = '\[[${symbol}${pyenv_prefix}(\($virtualenv\))]($style)\]'
 
 [raku]
