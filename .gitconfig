@@ -21,7 +21,9 @@
 [alias]
     st = status
     co = checkout
-    com = checkout master
+    com = checkout main
+    coms = checkout master
+    cob = checkout -b
     cm = commit -m
     br = branch
     aa = add --all
