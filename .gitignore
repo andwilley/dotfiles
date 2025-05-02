@@ -18,4 +18,5 @@
 !/.config
 /.config/*
 !/.config/starship.toml
+!/.config/jj
 !/.tmux/plugins/tpm
