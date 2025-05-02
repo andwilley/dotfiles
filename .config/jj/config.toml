@@ -8,6 +8,3 @@ merge-tool-edits-conflict-markers = true
 
 [ui]
 editor = "nvim"
-
-[aliases]
-st = ["status"]
