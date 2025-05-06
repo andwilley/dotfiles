@@ -76,9 +76,11 @@ format = '\[[$symbol$branch]($style)\]'
 format = '\[[$symbol$account(@$domain)(\($region\))]($style)\]'
 
 [git_branch]
+disabled = true
 format = '\[[$symbol$branch]($style)\]'
 
 [git_status]
+disabled = true
 format = '([\[$all_status$ahead_behind\]]($style))'
 
 [golang]
@@ -105,10 +107,10 @@ format = '\[[$symbol]($style)\]'
 [custom.jj]
 ignore_timeout = true
 description = "The current jj status"
-detect_folders = [".jj"]
-symbol = "🥋 "
+when = "jj root"
+symbol = "jj "
 command = '''
-jj log --revisions @ --no-graph --ignore-working-copy --color always --limit 1 --template '
+jj log --revisions @- --no-graph --ignore-working-copy --color always --limit 1 --template '
   separate(" ",
     change_id.shortest(4),
     bookmarks,
