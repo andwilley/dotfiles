@@ -1,10 +1,11 @@
 [merge-tools.diffconflicts]
 program = "nvim"
-merge-args = [
-    "-c", "let g:jj_diffconflicts_marker_length=$marker_length",
-    "-c", "JJDiffConflicts!", "$output", "$base", "$left", "$right",
-]
+merge-args = ["-c", "JJDiffConflicts", "$output"]
 merge-tool-edits-conflict-markers = true
 
 [ui]
 editor = "nvim"
+merge-editor = "diffconflicts"
+
+[aliases]
+ut = ["upload", "@-"]
