@@ -108,7 +108,7 @@ format = '\[[$symbol]($style)\]'
 ignore_timeout = true
 description = "The current jj status"
 when = "jj root"
-symbol = "󱗆 "
+symbol = "\n󱗆 "
 command = '''
 jj log --revisions @- --no-graph --ignore-working-copy --color always --limit 1 --template '
   separate(" ",
