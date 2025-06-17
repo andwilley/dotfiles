@@ -9,6 +9,7 @@ merge-editor = "diffconflicts"
 
 [aliases]
 ut = ["upload", "@-"]
+sq = ["squash"]
 
 [user]
 name = "Drew Willey"

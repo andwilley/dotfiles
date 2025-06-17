@@ -22,4 +22,5 @@
 !/.config/starship.toml
 !/.config/jj
 !/.tmux/plugins/tpm
+!GEMINI.md
 !git-connect.sh
