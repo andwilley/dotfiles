@@ -70,8 +70,9 @@ fi
 # turn off <C-s> functionality
 stty -ixon
 
-# Add local path to system path
+# Add local paths to system path
 export PATH=$PATH:~/.local/bin
+export PATH=$PATH:~/local/bin
 
 # Go setup
 export GOPATH=$HOME/go
