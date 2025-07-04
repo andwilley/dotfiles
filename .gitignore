@@ -16,6 +16,7 @@
 !goog.vim
 !.bashgoodies
 !Dockerfile
+!AtomOneLight.itermcolors
 !/.config
 /.config/*
 !/.config/starship.toml
