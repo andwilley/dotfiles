@@ -15,6 +15,7 @@
 !.tmux.conf
 !goog.vim
 !.bashgoodies
+!Dockerfile
 !/.config
 /.config/*
 !/.config/starship.toml
