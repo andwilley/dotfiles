@@ -42,6 +42,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
+RUN if [ "${INSTALL_CPP}" = "true" ] || [ "${INSTALL_ARDUINO}" = "true" ]; then \
+      echo "--- Installing Extra C/C++ Toolchain (Clang, etc) ---" && \
+      apt-get update && apt-get install -y --no-install-recommends \
+        gdb \
+        clang \
+        clangd \
+        lldb \
+      && rm -rf /var/lib/apt/lists/* && apt-get clean; \
+    fi
+
 # Configure locale settings.
 RUN sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
     dpkg-reconfigure --frontend=noninteractive locales && \
@@ -70,16 +80,6 @@ RUN mkdir -p ${HOME}/.config && \
     rm -rf /tmp/dotfiles
 
 RUN curl -sS https://starship.rs/install.sh | sh -s -- -y -b ${HOME}/local/bin
-
-RUN if [ "${INSTALL_CPP}" = "true" ] || [ "${INSTALL_ARDUINO}" = "true" ]; then \
-      echo "--- Installing Extra C/C++ Toolchain (Clang, etc) ---" && \
-      apt-get update && apt-get install -y --no-install-recommends \
-        gdb \
-        clang \
-        clangd \
-        lldb \
-      && rm -rf /var/lib/apt/lists/* && apt-get clean; \
-    fi
 
 SHELL ["/bin/bash", "-c"]
 RUN if [ "${INSTALL_GO}" = "true" ] || [ "${INSTALL_ARDUINO}" = "true" ]; then \
