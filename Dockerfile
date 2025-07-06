@@ -1,5 +1,6 @@
 FROM debian:bookworm-slim
 
+# TODO: Include version numbers for these as well
 ARG USER_NAME=rafiki
 ARG INSTALL_CPP=true
 ARG INSTALL_ARDUINO=true
@@ -59,7 +60,8 @@ RUN sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
 
 RUN useradd -m -s /bin/bash $USER_NAME && \
     echo "$USER_NAME:$USER_NAME" | chpasswd && \
-    adduser $USER_NAME sudo
+    adduser $USER_NAME sudo && \
+    chown -R $USER_NAME:$USER_NAME /home/$USER_NAME
 
 USER $USER_NAME
 WORKDIR $HOME
@@ -96,7 +98,7 @@ RUN if [ "${INSTALL_GO}" = "true" ] || [ "${INSTALL_ARDUINO}" = "true" ]; then \
 SHELL ["/bin/bash", "-c"]
 RUN if [ "${INSTALL_NODE}" = "true" ]; then \
       echo "--- Installing Node.js ---" && \
-      curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash && \
+      curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash && \
       export NVM_DIR="${HOME}/.nvm" && \
       [ -s "${NVM_DIR}/nvm.sh" ] && \. "${NVM_DIR}/nvm.sh" && \
       nvm install --lts && \
@@ -118,8 +120,10 @@ RUN if [ "${INSTALL_ARDUINO}" = "true" ]; then \
       arduino-cli config init && \
       arduino-cli core update-index && \
       arduino-cli core install arduino:avr && \
+      export GOCACHE=/tmp/.go-cache && \
       go install github.com/arduino/arduino-language-server@latest && \
-      ln -s ${HOME}/go/bin/arduino-language-server ${HOME}/local/bin/arduino-language-server; \
+      ln -s ${HOME}/go/bin/arduino-language-server ${HOME}/local/bin/arduino-language-server \
+      rm -rf /tmp/.go-cache; \
     fi
 
 RUN if [ "${INSTALL_RUST}" = "true" ]; then \
