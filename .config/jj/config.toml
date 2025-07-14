@@ -9,3 +9,7 @@ merge-editor = "diffconflicts"
 
 [aliases]
 ut = ["upload", "@-"]
+
+[user]
+name = "Drew Willey"
+email = "andwilley@gmail.com"

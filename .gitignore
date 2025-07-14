@@ -22,3 +22,4 @@
 !/.config/starship.toml
 !/.config/jj
 !/.tmux/plugins/tpm
+!git-connect.sh
