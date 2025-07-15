@@ -1,38 +1,80 @@
+# Basic
+# docker buildx build --platform linux/amd64,linux/arm64 -t andwilley/workstations:full --push \
+#   --build-arg INSTALL_ARDUINO=false \
+#   --build-arg INSTALL_HASKELL=false \
+#   --build-arg INSTALL_JVM=true \
+#   --build-arg INSTALL_OCAML=false \
+#   --build-arg INSTALL_ZIG=true \
+#   --build-arg INSTALL_SWIFT=false \
+#   .
+
+# Swift
+# docker buildx build --platform linux/amd64,linux/arm64 -t andwilley/workstations:full --push  \
+#   --build-arg INSTALL_ARDUINO=false \
+#   --build-arg INSTALL_HASKELL=false \
+#   --build-arg INSTALL_JVM=false \
+#   --build-arg INSTALL_OCAML=false \
+#   --build-arg INSTALL_ZIG=false \
+#   --build-arg INSTALL_SWIFT=true \
+#   .
+
+# FP
+# docker buildx build --platform linux/amd64,linux/arm64 -t andwilley/workstations:full --push \
+#   --build-arg INSTALL_ARDUINO=false \
+#   --build-arg INSTALL_HASKELL=true \
+#   --build-arg INSTALL_JVM=false \
+#   --build-arg INSTALL_OCAML=true \
+#   --build-arg INSTALL_ZIG=false \
+#   --build-arg INSTALL_SWIFT=false \
+#   .
+
+# Arduino
+# docker buildx build --platform linux/amd64,linux/arm64 -t andwilley/workstations:full --push \
+#   --build-arg INSTALL_ARDUINO=true \
+#   --build-arg INSTALL_HASKELL=false \
+#   --build-arg INSTALL_JVM=false \
+#   --build-arg INSTALL_OCAML=false \
+#   --build-arg INSTALL_ZIG=false \
+#   --build-arg INSTALL_SWIFT=false \
+#   .
+
 FROM debian:bookworm-slim
 
 # TODO: Include version numbers for these as well
 ARG USER_NAME=rafiki
-ARG INSTALL_CPP=true
 ARG INSTALL_ARDUINO=true
-ARG INSTALL_RUST=true
 ARG INSTALL_HASKELL=true
-ARG INSTALL_NODE=true
 ARG INSTALL_JVM=true
 ARG INSTALL_OCAML=true
 ARG INSTALL_ZIG=true
-ARG INSTALL_GO=true
 ARG INSTALL_SWIFT=true
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV LANG=C.UTF-8
 ENV HOME=/home/$USER_NAME
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt update && apt install -y --no-install-recommends \
     build-essential \
     ca-certificates \
     cmake \
     curl \
+    dpkg \
     gettext \
     git \
     gnupg \
+    gpg \
     jq \
     libgmp-dev \
     libz3-dev \
     locales \
     m4 \
+    tree \
+    less \
     ninja-build \
+    openssh-client \
     pkg-config \
     procps \
+    protobuf-compiler \
     rsync \
     sudo \
     tmux \
@@ -41,17 +83,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     zip \
     zlib1g-dev \
     && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+    && apt clean
 
-RUN if [ "${INSTALL_CPP}" = "true" ] || [ "${INSTALL_ARDUINO}" = "true" ]; then \
-      echo "--- Installing Extra C/C++ Toolchain (Clang, etc) ---" && \
-      apt-get update && apt-get install -y --no-install-recommends \
+# Always install CPP tooling
+RUN echo "--- Installing Extra C/C++ Toolchain (Clang, etc) ---" && \
+      apt update && apt install -y --no-install-recommends \
         gdb \
         clang \
         clangd \
         lldb \
-      && rm -rf /var/lib/apt/lists/* && apt-get clean; \
-    fi
+      && rm -rf /var/lib/apt/lists/* && apt clean
 
 # Configure locale settings.
 RUN sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
@@ -83,21 +124,26 @@ RUN mkdir -p ${HOME}/.config && \
 
 RUN curl -sS https://starship.rs/install.sh | sh -s -- -y -b ${HOME}/local/bin
 
+# Always install GO for building gh from src
 SHELL ["/bin/bash", "-c"]
-RUN if [ "${INSTALL_GO}" = "true" ] || [ "${INSTALL_ARDUINO}" = "true" ]; then \
-      echo "--- Installing Go ---" && \
+RUN echo "--- Installing Go ---" && \
       GO_VERSION=$(curl -s "https://go.dev/VERSION?m=text" | head -n 1) && \
       ARCH=$(dpkg --print-architecture) && \
       wget https://go.dev/dl/${GO_VERSION}.linux-${ARCH}.tar.gz -O go.tar.gz && \
       mkdir -p ${HOME}/go-sdk && \
       tar -C ${HOME}/go-sdk -xzf go.tar.gz --strip-components=1 && \
       ln -s ${HOME}/go-sdk/bin/go ${HOME}/local/bin/go && \
-      rm go.tar.gz; \
-    fi
+      ln -s ${HOME}/go-sdk/bin/gofmt ${HOME}/local/bin/gofmt && \
+      rm go.tar.gz && \
+      echo "--- Installing Git CLI ---" && \
+      git clone https://github.com/cli/cli.git .gh-cli && \
+      cd .gh-cli && \
+      make install prefix=$HOME/local && \
+      rm -rf .gh-cli
 
+# Always install node for gemini and bazelisk
 SHELL ["/bin/bash", "-c"]
-RUN if [ "${INSTALL_NODE}" = "true" ]; then \
-      echo "--- Installing Node.js ---" && \
+RUN echo "--- Installing Node.js ---" && \
       curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash && \
       export NVM_DIR="${HOME}/.nvm" && \
       [ -s "${NVM_DIR}/nvm.sh" ] && \. "${NVM_DIR}/nvm.sh" && \
@@ -107,13 +153,14 @@ RUN if [ "${INSTALL_NODE}" = "true" ]; then \
       ln -s ${NODE_PATH}/bin/node ${HOME}/local/bin/node && \
       ln -s ${NODE_PATH}/bin/npm ${HOME}/local/bin/npm && \
       ln -s ${NODE_PATH}/bin/npx ${HOME}/local/bin/npx && \
-      npm install -g typescript ts-node yarn pnpm @google/gemini-cli && \
+      npm install -g typescript ts-node yarn pnpm @google/gemini-cli @bazel/bazelisk && \
       ln -s ${NODE_PATH}/bin/tsc ${HOME}/local/bin/tsc && \
       ln -s ${NODE_PATH}/bin/ts-node ${HOME}/local/bin/ts-node && \
       ln -s ${NODE_PATH}/bin/yarn ${HOME}/local/bin/yarn && \
       ln -s ${NODE_PATH}/bin/pnpm ${HOME}/local/bin/pnpm && \
-      ln -s ${NODE_PATH}/bin/gemini ${HOME}/local/bin/gemini; \
-    fi
+      ln -s ${NODE_PATH}/bin/gemini ${HOME}/local/bin/gemini && \
+      ln -s ${NODE_PATH}/bin/bazel ${HOME}/local/bin/bazel && \
+      ln -s ${NODE_PATH}/bin/bazelisk ${HOME}/local/bin/bazelisk
 
 RUN if [ "${INSTALL_ARDUINO}" = "true" ]; then \
       echo "--- Installing Arduino Tools ---" && \
@@ -123,12 +170,12 @@ RUN if [ "${INSTALL_ARDUINO}" = "true" ]; then \
       arduino-cli core install arduino:avr && \
       export GOCACHE=/tmp/.go-cache && \
       go install github.com/arduino/arduino-language-server@latest && \
-      ln -s ${HOME}/go/bin/arduino-language-server ${HOME}/local/bin/arduino-language-server \
+      ln -s ${HOME}/go/bin/arduino-language-server ${HOME}/local/bin/arduino-language-server && \
       rm -rf /tmp/.go-cache; \
     fi
 
-RUN if [ "${INSTALL_RUST}" = "true" ]; then \
-      echo "--- Installing Rust and jj ---" && \
+# Always install rust for JJ and Cargo
+RUN echo "--- Installing Rust and jj ---" && \
       curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path && \
       ln -s ${HOME}/.cargo/bin/rustc ${HOME}/local/bin/ && \
       ln -s ${HOME}/.cargo/bin/cargo ${HOME}/local/bin/ && \
@@ -136,9 +183,10 @@ RUN if [ "${INSTALL_RUST}" = "true" ]; then \
       ${HOME}/.cargo/bin/cargo install jj-cli && \
       ln -s ${HOME}/.cargo/bin/jj ${HOME}/local/bin/ && \
       ${HOME}/.cargo/bin/rustup component remove rust-docs && \
+      jj config set --user user.name "Drew Willey" && \
+      jj config set --user user.email "andwilley@gmail.com" && \
       rm -rf ${HOME}/.cargo/registry/src/* && \
-      rm -rf ${HOME}/.cargo/registry/index/*; \
-    fi
+      rm -rf ${HOME}/.cargo/registry/index/*
 
 RUN if [ "${INSTALL_JVM}" = "true" ]; then \
       echo "--- Installing JVM Tools ---" && \
@@ -200,6 +248,7 @@ RUN if [ "${INSTALL_ZIG}" = "true" ]; then \
       ln -s ${HOME}/local/zig-compiler/zig ${HOME}/local/bin/zig; \
     fi
 
+# Note that this will override the existing cpp tooling and map it all to swiftly.
 RUN if [ "${INSTALL_SWIFT}" = "true" ]; then \
       echo "--- Installing Swift ---" && \
       curl -O https://download.swift.org/swiftly/linux/swiftly-$(uname -m).tar.gz && \
