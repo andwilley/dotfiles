@@ -1,5 +1,5 @@
 # Basic
-# docker buildx build --platform linux/amd64,linux/arm64 -t andwilley/workstations:full --push \
+# docker buildx build --platform linux/amd64,linux/arm64 -t andwilley/workstations:basic --push \
 #   --build-arg INSTALL_ARDUINO=false \
 #   --build-arg INSTALL_HASKELL=false \
 #   --build-arg INSTALL_JVM=true \
@@ -9,7 +9,7 @@
 #   .
 
 # Swift
-# docker buildx build --platform linux/amd64,linux/arm64 -t andwilley/workstations:full --push  \
+# docker buildx build --platform linux/amd64,linux/arm64 -t andwilley/workstations:swift --push  \
 #   --build-arg INSTALL_ARDUINO=false \
 #   --build-arg INSTALL_HASKELL=false \
 #   --build-arg INSTALL_JVM=false \
@@ -19,7 +19,7 @@
 #   .
 
 # FP
-# docker buildx build --platform linux/amd64,linux/arm64 -t andwilley/workstations:full --push \
+# docker buildx build --platform linux/amd64,linux/arm64 -t andwilley/workstations:fp --push \
 #   --build-arg INSTALL_ARDUINO=false \
 #   --build-arg INSTALL_HASKELL=true \
 #   --build-arg INSTALL_JVM=false \
@@ -29,7 +29,7 @@
 #   .
 
 # Arduino
-# docker buildx build --platform linux/amd64,linux/arm64 -t andwilley/workstations:full --push \
+# docker buildx build --platform linux/amd64,linux/arm64 -t andwilley/workstations:arduino --push \
 #   --build-arg INSTALL_ARDUINO=true \
 #   --build-arg INSTALL_HASKELL=false \
 #   --build-arg INSTALL_JVM=false \
