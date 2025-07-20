@@ -38,6 +38,12 @@
 #   --build-arg INSTALL_SWIFT=false \
 #   .
 
+# DOCKER_TAG=basic
+# docker run -it -d --name workspace-$DOCKER_TAG -p 8080:8080 -p 2222:22 -p 5432:5432 -p 3000:3000 \
+#   -v ~/projects:/home/rafiki/projects andwilley/workstations:$DOCKER_TAG
+
+# docker exec -it workspace-$DOCKER_TAG /bin/bash -l
+
 FROM debian:bookworm-slim
 
 # TODO: Include version numbers for these as well
@@ -139,7 +145,8 @@ RUN echo "--- Installing Go ---" && \
       git clone https://github.com/cli/cli.git .gh-cli && \
       cd .gh-cli && \
       make install prefix=$HOME/local && \
-      rm -rf .gh-cli
+      rm -rf .gh-cli && \
+      go install golang.org/x/tools/gopls@latest
 
 # Always install node for gemini and bazelisk
 SHELL ["/bin/bash", "-c"]
