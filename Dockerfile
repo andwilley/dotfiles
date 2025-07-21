@@ -39,8 +39,11 @@
 #   .
 
 # DOCKER_TAG=basic
-# docker run -it -d --name workspace-$DOCKER_TAG -p 8080:8080 -p 2222:22 -p 5432:5432 -p 3000:3000 \
-#   -v ~/projects:/home/rafiki/projects andwilley/workstations:$DOCKER_TAG
+# docker run -it -d --name workspace-$DOCKER_TAG \
+#   -p 8080:8080 -p 2222:22 -p 5432:5432 -p 3000:3000 \
+#   -v /var/run/docker.sock:/var/run/docker.sock \
+#   -v ~/projects:/home/rafiki/projects \
+#   andwilley/workstations:$DOCKER_TAG
 
 # docker exec -it workspace-$DOCKER_TAG /bin/bash -l
 
@@ -87,9 +90,18 @@ RUN apt update && apt install -y --no-install-recommends \
     unzip \
     wget \
     zip \
-    zlib1g-dev \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt clean
+    zlib1g-dev && \
+    install -m 0755 -d /etc/apt/keyrings && \
+    curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc && \
+    chmod a+r /etc/apt/keyrings/docker.asc && \
+    echo \
+      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian \
+      $(. /etc/os-release && echo "bookworm") stable" | \
+      tee /etc/apt/sources.list.d/docker.list > /dev/null && \
+    apt update && \
+    apt install docker-ce-cli docker-buildx-plugin docker-compose-plugin && \
+    rm -rf /var/lib/apt/lists/* && \
+    apt clean
 
 # Always install CPP tooling
 RUN echo "--- Installing Extra C/C++ Toolchain (Clang, etc) ---" && \
