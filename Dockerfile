@@ -40,7 +40,7 @@
 
 # DOCKER_TAG=basic
 # docker run -it -d --name workspace-$DOCKER_TAG \
-#   -p 8080:8080 -p 2222:22 -p 5432:5432 -p 3000:3000 \
+#   -p 8080:8080 -p 2222:22 -p 3000:3000 \
 #   -v /var/run/docker.sock:/var/run/docker.sock \
 #   -v ~/projects:/home/rafiki/projects \
 #   andwilley/workstations:$DOCKER_TAG
@@ -214,7 +214,8 @@ RUN if [ "${INSTALL_JVM}" = "true" ]; then \
 SHELL ["/bin/bash", "-l", "-c"]
 RUN if [ "${INSTALL_JVM}" = "true" ]; then \
       source "${HOME}/.sdkman/bin/sdkman-init.sh" && \
-      sdk install java && \
+      export sdkman_auto_answer=true && \
+      sdk install java 21.0.7-tem && \
       sdk install kotlin && \
       sdk install gradle && \
       sdk install maven && \
