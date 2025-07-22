@@ -39,13 +39,19 @@
 #   .
 
 # DOCKER_TAG=basic
+# docker network create dev-net
 # docker run -it -d --name workspace-$DOCKER_TAG \
-#   -p 8080:8080 -p 2222:22 -p 3000:3000 \
+#   -p 8080:8080 -p 2222:22 -p 3000:3000 --netowrk dev-net \
 #   -v /var/run/docker.sock:/var/run/docker.sock \
 #   -v ~/projects:/home/rafiki/projects \
 #   andwilley/workstations:$DOCKER_TAG
 
 # docker exec -it workspace-$DOCKER_TAG /bin/bash -l
+
+# To run docker commands in the container:
+# $ sudo chown root:daemon /var/run/docker.sock
+# $ sudo adduser rafiki daemon
+# then re-enter the container
 
 FROM debian:bookworm-slim
 
@@ -82,6 +88,7 @@ RUN apt update && apt install -y --no-install-recommends \
     ninja-build \
     openssh-client \
     pkg-config \
+    postgresql-client \
     procps \
     protobuf-compiler \
     rsync \
