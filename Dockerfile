@@ -147,6 +147,8 @@ RUN mkdir -p ${HOME}/.config && \
     rsync -av /tmp/dotfiles/ ${HOME}/ && \
     rm -rf /tmp/dotfiles
 
+RUN git config --global --unset url."ssh://git@github.com/".insteadOf
+
 RUN curl -sS https://starship.rs/install.sh | sh -s -- -y -b ${HOME}/local/bin
 
 # Always install GO for building gh from src
@@ -283,6 +285,9 @@ RUN if [ "${INSTALL_SWIFT}" = "true" ]; then \
       tar zxf swiftly-$(uname -m).tar.gz && \
       ./swiftly init --verbose --assume-yes; \
     fi
+
+# Restore git config
+RUN git config --global url."ssh://git@github.com/".insteadOf https://github.com/
 
 SHELL ["/bin/bash", "-c"]
 
