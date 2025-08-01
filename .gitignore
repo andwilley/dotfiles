@@ -10,6 +10,7 @@
 !.inputrc
 !.bash_aliases
 !.bash_funcs
+!.bash_profile
 !.hgrc
 !.hgignore
 !.tmux.conf
