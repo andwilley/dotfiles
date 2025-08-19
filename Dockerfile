@@ -179,12 +179,13 @@ RUN echo "--- Installing Node.js ---" && \
       ln -s ${NODE_PATH}/bin/node ${HOME}/local/bin/node && \
       ln -s ${NODE_PATH}/bin/npm ${HOME}/local/bin/npm && \
       ln -s ${NODE_PATH}/bin/npx ${HOME}/local/bin/npx && \
-      npm install -g typescript ts-node yarn pnpm @google/gemini-cli @bazel/bazelisk && \
+      npm install -g typescript ts-node yarn pnpm @google/gemini-cli @bazel/bazelisk @anthropic-ai/claude-code && \
       ln -s ${NODE_PATH}/bin/tsc ${HOME}/local/bin/tsc && \
       ln -s ${NODE_PATH}/bin/ts-node ${HOME}/local/bin/ts-node && \
       ln -s ${NODE_PATH}/bin/yarn ${HOME}/local/bin/yarn && \
       ln -s ${NODE_PATH}/bin/pnpm ${HOME}/local/bin/pnpm && \
       ln -s ${NODE_PATH}/bin/gemini ${HOME}/local/bin/gemini && \
+      ln -s ${NODE_PATH}/bin/claude ${HOME}/local/bin/claude && \
       ln -s ${NODE_PATH}/bin/bazel ${HOME}/local/bin/bazel && \
       ln -s ${NODE_PATH}/bin/bazelisk ${HOME}/local/bin/bazelisk
 
