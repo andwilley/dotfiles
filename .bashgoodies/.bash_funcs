@@ -27,3 +27,21 @@ function stopec2() {
 function pingec2() {
   aws ec2 describe-instance-status --instance-ids "i-0256c137df484a73d" | python3 ~/.bashgoodies//aws.py
 }
+
+function run_workspace() {
+  DOCKER_TAG=${1:-basic}
+  USERNAME=${2:-rafiki}
+  echo "Starting workspace with tag: $DOCKER_TAG"
+  docker network create dev-net || true
+  docker run -it -d --name workspace-$DOCKER_TAG \
+    -p 8080:8080 -p 2222:22 -p 3000:3000 \
+    --network dev-net \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    -v ~/projects:/home/$USERNAME/projects \
+    andwilley/workstations:$DOCKER_TAG
+}
+
+function enter_workspace() {
+  DOCKER_TAG=${1:-basic}
+  docker exec -it workspace-$DOCKER_TAG /bin/bash -l
+}
