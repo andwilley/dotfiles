@@ -45,3 +45,101 @@ function enter_workspace() {
   DOCKER_TAG=${1:-basic}
   docker exec -it workspace-$DOCKER_TAG /bin/bash -l
 }
+
+function git_connect() {
+  echo "Logging into GitHub..."
+  if ! gh auth login -h github.com -s admin:public_key; then
+    echo "GitHub authentication failed. Aborting."
+    return 1
+  fi
+
+  local ssh_key_path="$HOME/.ssh/github_key"
+  local ssh_config_path="$HOME/.ssh/config"
+
+  if [ -f "$ssh_key_path" ]; then
+    echo "SSH key file already exists at $ssh_key_path. Aborting to prevent overwrite."
+    echo "Please remove or rename the existing file if you wish to generate a new one."
+    return 1
+  fi
+
+  echo "Generating a new SSH key..."
+  ssh-keygen -t ed25519 -f "$ssh_key_path" -N ""
+
+  mkdir -p "$(dirname "$ssh_config_path")"
+  touch "$ssh_config_path"
+
+  local config_entry
+  config_entry=$(cat <<EOM
+Host github.com
+  IdentityFile $ssh_key_path
+EOM
+)
+
+  if ! grep -q "Host github.com" "$ssh_config_path"; then
+    echo "Updating SSH config for github.com..."
+    echo -e "\n$config_entry" >> "$ssh_config_path"
+  else
+    echo "SSH config entry for 'Host github.com' already exists. Skipping update."
+    echo "Please review your configuration manually at $ssh_config_path"
+  fi
+
+  echo "Uploading SSH key to GitHub..."
+  local key_title="cloud-dev-env-$(date +%s)"
+  if gh ssh-key add "${ssh_key_path}.pub" -t "$key_title"; then
+    echo "Successfully connected to GitHub!"
+  else
+    echo "Failed to upload SSH key to GitHub."
+    return 1
+  fi
+}
+
+# Set up permissions to run on the host docker daemon from a container.
+# /var/run/docker.sock must already be mapped.
+function d_out_d() {
+  # sudo chown root:daemon /var/run/docker.sock
+  # sudo adduser $(whoami) daemon
+  local user="${1:-$(whoami)}"
+  local socket_path="/var/run/docker.sock"
+
+  if [[ ! -S "${socket_path}" ]]; then
+    echo "Error: Docker socket not found at ${socket_path}." >&2
+    return 1
+  fi
+
+  local docker_gid
+  docker_gid=$(stat -c '%g' "${socket_path}")
+  if ! [[ "${docker_gid}" =~ ^[0-9]+$ ]]; then
+      echo "Error: Could not determine the group ID for ${socket_path}." >&2
+      return 1
+  fi
+
+  local docker_group
+  docker_group=$(getent group "${docker_gid}" | cut -d: -f1)
+  if [[ -z "${docker_group}" ]]; then
+    docker_group="${docker_gid}"
+  fi
+
+  if [[ "${docker_group}" == "root" ]]; then
+    local new_group="docker_access"
+    if ! getent group "${new_group}" > /dev/null; then
+      if ! sudo groupadd "${new_group}"; then
+        echo "Error: Failed to create group '${new_group}'. Check sudo permissions." >&2
+        return 1
+      fi
+    fi
+    if ! sudo chgrp "${new_group}" "${socket_path}"; then
+      echo "Error: Failed to change group of ${socket_path}." >&2
+      return 1
+    fi
+    docker_group="${new_group}"
+  fi
+
+  if ! id -nG "${user}" | grep -qw "${docker_group}"; then
+    if ! sudo usermod -aG "${docker_group}" "${user}"; then
+      echo "Error: Failed to add user '${user}' to group '${docker_group}'." >&2
+      return 1
+    fi
+    echo "Success! User '${user}' has been added to the '${docker_group}' group."
+    echo "IMPORTANT: For the new group membership to take effect, you must start a new shell session (or log out and log back in)."
+  fi
+}
