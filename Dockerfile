@@ -214,6 +214,7 @@ RUN echo "--- Installing Rust and jj ---" && \
       ln -s ${HOME}/.cargo/bin/rustc ${HOME}/local/bin/ && \
       ln -s ${HOME}/.cargo/bin/cargo ${HOME}/local/bin/ && \
       ln -s ${HOME}/.cargo/bin/rustup ${HOME}/local/bin/ && \
+      rustup component add rust-analyzer && \
       ${HOME}/.cargo/bin/cargo install jj-cli && \
       ln -s ${HOME}/.cargo/bin/jj ${HOME}/local/bin/ && \
       ${HOME}/.cargo/bin/rustup component remove rust-docs && \
