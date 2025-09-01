@@ -217,6 +217,13 @@ RUN echo "--- Installing Rust and jj ---" && \
       rm -rf ${HOME}/.cargo/registry/src/* && \
       rm -rf ${HOME}/.cargo/registry/index/*
 
+# gopls is installed with go
+RUN echo "--- Installing LSPs ---" && \
+      git clone https://github.com/withered-magic/starpls.git ${HOME}/starpls && \
+      cd ${HOME}/starpls && bazel run -c opt //editors/code:copy_starpls && \
+      cd ~ && cp ${HOME}/starpls/editors/code/bin/starpls ${HOME}/local/bin/ && \
+      rm -rf ${HOME}/starpls
+
 RUN if [ "${INSTALL_JVM}" = "true" ]; then \
       echo "--- Installing JVM Tools ---" && \
       curl -s "https://get.sdkman.io" | bash; \
