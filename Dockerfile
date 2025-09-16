@@ -69,6 +69,7 @@ ENV LANG=C.UTF-8
 ENV HOME=/home/$USER_NAME
 
 RUN apt update && apt install -y --no-install-recommends \
+    apt-transport-https \
     build-essential \
     ca-certificates \
     cmake \
@@ -149,7 +150,11 @@ RUN mkdir -p ${HOME}/.config && \
 
 RUN git config --global --unset url."ssh://git@github.com/".insteadOf
 
-RUN curl -sS https://starship.rs/install.sh | sh -s -- -y -b ${HOME}/local/bin
+RUN echo "--- Installing Starship and gCloud CLI ---"
+    curl -sS https://starship.rs/install.sh | sh -s -- -y -b ${HOME}/local/bin && \
+    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.coloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \
+    sudo apt update && sudo apt install -y --no-install-recommends google-cloud-cli
 
 # Always install GO for building gh from src
 SHELL ["/bin/bash", "-c"]
