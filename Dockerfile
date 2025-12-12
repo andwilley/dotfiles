@@ -156,7 +156,7 @@ RUN mkdir -p ${HOME}/.config && \
 
 RUN git config --global --unset url."ssh://git@github.com/".insteadOf
 
-RUN echo "--- Installing Starship and gCloud CLI ---"
+RUN echo "--- Installing Starship and gCloud CLI ---" && \
     curl -sS https://starship.rs/install.sh | sh -s -- -y -b ${HOME}/local/bin && \
     curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg && \
     echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.coloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \
