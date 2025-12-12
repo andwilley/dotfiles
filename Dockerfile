@@ -46,7 +46,16 @@
 #   -v ~/projects:/home/rafiki/projects \
 #   andwilley/workstations:$DOCKER_TAG
 
+# for arduino, same as above but add:
+#   --device /dev/ttyACM0 \
+#   -e RAVEDUDE_PORT=/dev/ttyACM0 \
+
+# To enter the container:
 # docker exec -it workspace-$DOCKER_TAG /bin/bash -l
+
+# Once its created, we can use:
+# docker start workspace-$DOCKER_TAG
+# docker stop workspace-$DOCKER_TAG
 
 # To run docker commands in the container:
 # $ sudo chown root:daemon /var/run/docker.sock
@@ -101,6 +110,10 @@ RUN apt update && apt install -y --no-install-recommends \
     unzip \
     wget \
     zip \
+    gdb \
+    clang \
+    clangd \
+    lldb \
     zlib1g-dev && \
     install -m 0755 -d /etc/apt/keyrings && \
     curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc && \
@@ -114,14 +127,15 @@ RUN apt update && apt install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/* && \
     apt clean
 
-# Always install CPP tooling
-RUN echo "--- Installing Extra C/C++ Toolchain (Clang, etc) ---" && \
+RUN if [ "${INSTALL_ARDUINO}" = "true" ]; then \
+      echo "--- Installing Arduino Deps ---" && \
       apt update && apt install -y --no-install-recommends \
-        gdb \
-        clang \
-        clangd \
-        lldb \
-      && rm -rf /var/lib/apt/lists/* && apt clean
+        avr-libc \
+        gcc-avr \
+        avrdude \
+        libssl-dev \
+        libudev-dev; \
+    fi
 
 # Configure locale settings.
 RUN sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
@@ -131,7 +145,8 @@ RUN sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
 RUN useradd -m -s /bin/bash $USER_NAME && \
     echo "$USER_NAME:$USER_NAME" | chpasswd && \
     adduser $USER_NAME sudo && \
-    chown -R $USER_NAME:$USER_NAME /home/$USER_NAME
+    chown -R $USER_NAME:$USER_NAME /home/$USER_NAME && \
+    usermod -a -G dialout $USER_NAME
 
 RUN echo "--- Installing GCloud ---" && \
     curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg && \
@@ -202,18 +217,6 @@ RUN echo "--- Installing Node.js ---" && \
       ln -s ${NODE_PATH}/bin/bazel ${HOME}/local/bin/bazel && \
       ln -s ${NODE_PATH}/bin/bazelisk ${HOME}/local/bin/bazelisk
 
-RUN if [ "${INSTALL_ARDUINO}" = "true" ]; then \
-      echo "--- Installing Arduino Tools ---" && \
-      curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=${HOME}/local/bin sh && \
-      arduino-cli config init && \
-      arduino-cli core update-index && \
-      arduino-cli core install arduino:avr && \
-      export GOCACHE=/tmp/.go-cache && \
-      go install github.com/arduino/arduino-language-server@latest && \
-      ln -s ${HOME}/go/bin/arduino-language-server ${HOME}/local/bin/arduino-language-server && \
-      rm -rf /tmp/.go-cache; \
-    fi
-
 # Always install rust for JJ and Cargo
 RUN echo "--- Installing Rust and jj ---" && \
       curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path && \
@@ -228,6 +231,20 @@ RUN echo "--- Installing Rust and jj ---" && \
       jj config set --user user.email "andwilley@gmail.com" && \
       rm -rf ${HOME}/.cargo/registry/src/* && \
       rm -rf ${HOME}/.cargo/registry/index/*
+
+RUN if [ "${INSTALL_ARDUINO}" = "true" ]; then \
+      echo "--- Installing Arduino Tools ---" && \
+      curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=${HOME}/local/bin sh && \
+      arduino-cli config init && \
+      arduino-cli core update-index && \
+      arduino-cli core install arduino:avr && \
+      export GOCACHE=/tmp/.go-cache && \
+      go install github.com/arduino/arduino-language-server@latest && \
+      ln -s ${HOME}/go/bin/arduino-language-server ${HOME}/local/bin/arduino-language-server && \
+      rm -rf /tmp/.go-cache && \
+      cargo +stable install ravedude && \
+      cargo install cargo-generate; \
+    fi
 
 # gopls is installed with go
 RUN echo "--- Installing LSPs ---" && \
