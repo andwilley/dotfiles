@@ -41,7 +41,7 @@
 # DOCKER_TAG=basic
 # docker network create dev-net
 # docker run -it -d --name workspace-$DOCKER_TAG \
-#   -p 8080:8080 -p 2222:22 -p 3000:3000 --netowrk dev-net \
+#   -p 8080:8080 -p 2222:22 -p 3000:3000 --network dev-net \
 #   -v /var/run/docker.sock:/var/run/docker.sock \
 #   -v ~/projects:/home/rafiki/projects \
 #   andwilley/workstations:$DOCKER_TAG
