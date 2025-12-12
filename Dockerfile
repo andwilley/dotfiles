@@ -178,7 +178,8 @@ RUN echo "--- Installing Go ---" && \
       cd .gh-cli && \
       make install prefix=$HOME/local && \
       rm -rf .gh-cli && \
-      go install golang.org/x/tools/gopls@latest
+      go install golang.org/x/tools/gopls@latest && \
+      go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest
 
 # Always install node for gemini and bazelisk
 SHELL ["/bin/bash", "-c"]
