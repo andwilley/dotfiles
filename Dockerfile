@@ -92,6 +92,9 @@ RUN apt update && apt install -y --no-install-recommends \
     postgresql-client \
     procps \
     protobuf-compiler \
+    python3 \
+    python3-pip \
+    python3-venv \
     rsync \
     sudo \
     tmux \
@@ -135,6 +138,9 @@ WORKDIR $HOME
 
 RUN mkdir -p ${HOME}/local/bin
 ENV PATH="${HOME}/local/bin:${PATH}"
+
+RUN python3 -m pip install --user clang-init && \
+    ln -s ${HOME}/.local/bin/clang-init ${HOME}/local/bin/
 
 RUN git clone https://github.com/neovim/neovim.git --depth 1 --branch stable ${HOME}/neovim-src \
     && cd ${HOME}/neovim-src \
