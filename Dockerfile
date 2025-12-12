@@ -127,6 +127,12 @@ RUN apt update && apt install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/* && \
     apt clean
 
+RUN echo "--- Link LLDB to python interp ---" && \
+      find /usr/lib -name embedded_interpreter.py | \
+        xargs dirname | \
+        xargs dirname \
+        > /usr/lib/python3/dist-packages/lldb_paths.pth
+
 RUN if [ "${INSTALL_ARDUINO}" = "true" ]; then \
       echo "--- Installing Arduino Deps ---" && \
       apt update && apt install -y --no-install-recommends \
