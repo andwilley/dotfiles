@@ -11,6 +11,10 @@ disabled=false
 [character]
 success_symbol = '[λ](bold green)'
 error_symbol = '[λ](bold red)'
+vimcmd_symbol = "[❮](bold green)"       # The "Normal" mode symbol
+vimcmd_replace_one_symbol = "[❮](bold purple)" # The "Replace" mode symbol
+vimcmd_replace_symbol = "[❮](bold purple)"
+vimcmd_visual_symbol = "[❮](bold yellow)"
 
 [time]
 disabled = false

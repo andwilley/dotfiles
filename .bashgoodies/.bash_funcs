@@ -1,17 +1,5 @@
 sesh() { tmux new-session -A -s ${1:-sesh}; }
 
-mvndbrun() {
-  port=${1:-8000}
-  echo "using port $port"
-  mvn spring-boot:run -Drun.profiles=dev -Dspring-boot.run.jvmArguments="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=$port"
-}
-
-mvndbtest() {
-  port=${1:-8000}
-  echo "using port $port"
-  mvn -Dmaven.surefire.debug="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=$port -Xnoagent -Djava.compiler=NONE" test
-}
-
 function awsssh() {
     ssh -L 9229:localhost:9229 -L 9222:localhost:9222 -L 9000:localhost:9000 -L 8080:localhost:8080 -L 3001:locahost:3000 ubuntu@www.divsharp.com;
 }

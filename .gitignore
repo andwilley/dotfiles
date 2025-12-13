@@ -22,5 +22,6 @@
 /.config/*
 !/.config/starship.toml
 !/.config/jj
+!/.config/fish
 !/.tmux/plugins/tpm
 !GEMINI.md
