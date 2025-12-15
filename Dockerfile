@@ -84,6 +84,7 @@ RUN apt update && apt install -y --no-install-recommends \
     cmake \
     curl \
     dpkg \
+    fish \
     gettext \
     git \
     gnupg \
@@ -176,8 +177,6 @@ RUN mkdir -p ${HOME}/.config && \
     git clone --depth 1 --recurse-submodules https://github.com/andwilley/dotfiles.git /tmp/dotfiles && \
     rsync -av /tmp/dotfiles/ ${HOME}/ && \
     rm -rf /tmp/dotfiles
-
-RUN git config --global --unset url."ssh://git@github.com/".insteadOf
 
 RUN echo "--- Installing Starship ---" && \
     curl -sS https://starship.rs/install.sh | sh -s -- -y -b ${HOME}/local/bin
@@ -328,9 +327,9 @@ RUN if [ "${INSTALL_SWIFT}" = "true" ]; then \
       ./swiftly init --verbose --assume-yes; \
     fi
 
-# Restore git config
-RUN git config --global url."ssh://git@github.com/".insteadOf https://github.com/
+# Set fish as default shell
+RUN chsh -s $(which fish)
 
 SHELL ["/bin/bash", "-c"]
 
-ENTRYPOINT ["/bin/bash", "-l"]
+ENTRYPOINT ["fish", "-l"]
