@@ -46,11 +46,13 @@ if [ -f ~/.bashgoodies/.bash_aliases ]; then
     . ~/.bashgoodies/.bash_aliases
 fi
 
-# Bash functions (only load work or not work)
+if [ -f ~/.bashgoodies/.bash_funcs ]; then
+    . ~/.bashgoodies/.bash_funcs
+fi
+
+# Bash functions
 if [ -f ~/.goog/.bash_funcs ]; then
     . ~/.goog/.bash_funcs
-elif [ -f ~/.bashgoodies/.bash_funcs ]; then
-    . ~/.bashgoodies/.bash_funcs
 fi
 
 # Local non-version controlled stuff
