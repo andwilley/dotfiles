@@ -17,6 +17,7 @@
 !goog.vim
 !.bashgoodies
 !Dockerfile
+!setup.yml
 !AtomOneLight.itermcolors
 !/.config
 /.config/*
