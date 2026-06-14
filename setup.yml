@@ -14,9 +14,10 @@
 #
 # HOW TO ADD SPOKES LATER:
 # If you later decide you need JVM tools on an existing box, just run:
-#    ansible-playbook -i hosts.ini setup.yml -e "dev_user_password=YourSecret" --tags "jvm"
+#    ansible-playbook -i hosts.ini setup.yml -e "dev_user=rafiki dev_user_password=YourSecret" --tags "jvm"
 #
 # NOTE ON RUNTIME PARAMETERS:
+# - dev_user: The user (e.g. dev_user=rafiki)
 # - dev_user_password: The password for the developer user (e.g., -e "dev_user_password=YourSecret").
 #
 # AVAILABLE TAGS:
@@ -183,13 +184,22 @@
         mode: "0644"
       tags: base
 
-    - name: Create developer user
+    - name: Ensure developer user exists
       ansible.builtin.user:
         name: "{{ dev_user }}"
         shell: /usr/bin/fish
         groups: sudo,dialout
         append: true
-        password: "{{ dev_user_password | password_hash('sha512') }}"
+        password: "{{ (dev_user_password | password_hash('sha512')) if dev_user_password is defined else omit }}"
+      tags: base
+
+    - name: Ensure developer user home directory has correct ownership
+      ansible.builtin.file:
+        path: "~{{ dev_user }}"
+        state: directory
+        owner: "{{ dev_user }}"
+        group: "{{ dev_user }}"
+        mode: "0755"
       tags: base
 
     - name: Ensure local bin directory exists
