@@ -7,26 +7,29 @@
 # 1. Create an inventory file (e.g., `hosts.ini`) with your VM's IP:
 #    [devbox]
 #    198.51.100.14 ansible_user=root
-# 2. Run the playbook with specific tags (or run all):
-#    ansible-playbook -i hosts.ini setup.yml --tags "base,go,rust"
+# 2. Run the playbook with specific tags (or run all), passing the developer password at runtime:
+#    ansible-playbook -i hosts.ini setup.yml -e "dev_user_password=YourSecret" --tags "base,go,rust"
 # 3. Run a minimal, apt-free bootstrap configuration (dotfiles, tmux, fish, neovim):
-#    ansible-playbook -i hosts.ini setup.yml --tags "bootstrap"
+#    ansible-playbook -i hosts.ini setup.yml -e "dev_user_password=YourSecret" --tags "bootstrap"
 #
 # HOW TO ADD SPOKES LATER:
 # If you later decide you need JVM tools on an existing box, just run:
-#    ansible-playbook -i hosts.ini setup.yml --tags "jvm"
+#    ansible-playbook -i hosts.ini setup.yml -e "dev_user_password=YourSecret" --tags "jvm"
+#
+# NOTE ON RUNTIME PARAMETERS:
+# - dev_user_password: The password for the developer user (e.g., -e "dev_user_password=YourSecret").
 #
 # AVAILABLE TAGS:
 # - bootstrap : Minimal user-space config (Dotfiles, Fish/Tmux setups, Neovim/Lazy)
 #               Requires: apt install git curl rsync fish tmux unzip zip
 #               (plus build-essential, cmake, gettext for non-x86_64 Neovim source compiles)
-# - base      : Core OS tools, LLVM, Node.js (Hub), go, rust, lsp
+# - base      : Core OS tools, LLVM, Node.js (Hub), go, rust
 # - docker    : Docker CE (daemon), docker-ce-cli, buildx, compose
 # - gcloud    : Google Cloud SDK cli
 # - agents    : Claude Code and Antigravity CLI agents
 # - go        : Go SDK, gopls, grpcurl
 # - rust      : Rustup, cargo, rust-analyzer, jj-cli
-# - lsp       : Starpls (Bazel compiled)
+# - starpls   : Starpls (Bazel compiled) (Must be invoked explicitly to prevent OOM errors)
 # - arduino   : avr-libc, avrdude, arduino-cli, ravedude
 # - jvm       : SDKMAN, Java 21, Kotlin, Gradle, Maven
 # - haskell   : GHCup, GHC, Cabal, HLS
@@ -186,12 +189,12 @@
         shell: /usr/bin/fish
         groups: sudo,dialout
         append: true
-        password: "$6$eBOrws38PATvxxIg$9/DM8OiJFvb.5GWTYAd7Ko/E.GNH3J1mchStCcytM4WGH4xMQXfD4I6DIKP8Fdw6QLp5drFX8Vvutpc8K6UNh."
+        password: "{{ dev_user_password | password_hash('sha512') }}"
       tags: base
 
     - name: Ensure local bin directory exists
       ansible.builtin.file:
-        path: "/home/{{ dev_user }}/local/bin"
+        path: "~{{ dev_user }}/local/bin"
         state: directory
         owner: "{{ dev_user }}"
         group: "{{ dev_user }}"
@@ -200,7 +203,7 @@
 
     - name: Ensure Ansible remote temporary directory exists with correct permissions
       ansible.builtin.file:
-        path: "/home/{{ dev_user }}/.ansible/tmp"
+        path: "~{{ dev_user }}/.ansible/tmp"
         state: directory
         owner: "{{ dev_user }}"
         group: "{{ dev_user }}"
@@ -209,14 +212,14 @@
 
     - name: Check if Neovim is already installed
       ansible.builtin.stat:
-        path: "/home/{{ dev_user }}/local/bin/nvim"
+        path: "~{{ dev_user }}/local/bin/nvim"
       register: nvim_stat
       tags: ["base", "bootstrap"]
 
     - name: Download and install Neovim (AMD64 Binary)
       ansible.builtin.unarchive:
         src: "https://github.com/neovim/neovim/releases/download/{{ neovim_version }}/nvim-linux64.tar.gz"
-        dest: "/home/{{ dev_user }}/local/"
+        dest: "~{{ dev_user }}/local/"
         remote_src: true
         extra_opts:
           - --strip-components=1
@@ -227,7 +230,7 @@
     - name: Clone Neovim source for non-x86_64 hosts
       ansible.builtin.git:
         repo: https://github.com/neovim/neovim.git
-        dest: "/home/{{ dev_user }}/neovim-src"
+        dest: "~{{ dev_user }}/neovim-src"
         depth: 1
         version: "{{ neovim_version }}"
       become_user: "{{ dev_user }}"
@@ -236,17 +239,17 @@
 
     - name: Compile and install Neovim from source
       ansible.builtin.shell: |
-        make CMAKE_BUILD_TYPE=Release CMAKE_INSTALL_PREFIX=/home/{{ dev_user }}/local
+        make CMAKE_BUILD_TYPE=Release CMAKE_INSTALL_PREFIX=~{{ dev_user }}/local
         make install
       args:
-        chdir: "/home/{{ dev_user }}/neovim-src"
+        chdir: "~{{ dev_user }}/neovim-src"
       become_user: "{{ dev_user }}"
       when: ansible_facts['architecture'] != 'x86_64' and not nvim_stat.stat.exists
       tags: ["base", "bootstrap"]
 
     - name: Clean Neovim source directory
       ansible.builtin.file:
-        path: "/home/{{ dev_user }}/neovim-src"
+        path: "~{{ dev_user }}/neovim-src"
         state: absent
       become_user: "{{ dev_user }}"
       when: ansible_facts['architecture'] != 'x86_64' and not nvim_stat.stat.exists
@@ -255,7 +258,7 @@
     - name: Clone Nvim Config
       ansible.builtin.git:
         repo: "https://github.com/andwilley/nvim-config.git"
-        dest: "/home/{{ dev_user }}/.config/nvim"
+        dest: "~{{ dev_user }}/.config/nvim"
         version: "{{ nvim_config_version }}"
       become_user: "{{ dev_user }}"
       tags: ["base", "bootstrap"]
@@ -263,21 +266,21 @@
     - name: Clone and Sync Dotfiles
       ansible.builtin.git:
         repo: "https://github.com/andwilley/dotfiles.git"
-        dest: "/home/{{ dev_user }}/dotfiles"
+        dest: "~{{ dev_user }}/dotfiles"
         version: "{{ dotfiles_version }}"
       become_user: "{{ dev_user }}"
       tags: ["base", "bootstrap"]
 
     - name: Symlink or Sync Dotfiles content
       ansible.builtin.shell: |
-        rsync -av /home/{{ dev_user }}/dotfiles/ /home/{{ dev_user }}/
+        rsync -av ~{{ dev_user }}/dotfiles/ ~{{ dev_user }}/
       become_user: "{{ dev_user }}"
       tags: ["base", "bootstrap"]
 
     - name: Clone Tmux Plugin Manager (TPM)
       ansible.builtin.git:
         repo: "https://github.com/tmux-plugins/tpm"
-        dest: "/home/{{ dev_user }}/.tmux/plugins/tpm"
+        dest: "~{{ dev_user }}/.tmux/plugins/tpm"
         version: master
       become_user: "{{ dev_user }}"
       tags: ["base", "bootstrap"]
@@ -286,15 +289,15 @@
       ansible.builtin.shell: |
         tmux kill-session -t tpm-install 2>/dev/null || true
         tmux new-session -d -s tpm-install
-        tmux run-shell /home/{{ dev_user }}/.tmux/plugins/tpm/tpm
-        /home/{{ dev_user }}/.tmux/plugins/tpm/bin/install_plugins
+        tmux run-shell ~{{ dev_user }}/.tmux/plugins/tpm/tpm
+        ~{{ dev_user }}/.tmux/plugins/tpm/bin/install_plugins
         tmux kill-session -t tpm-install
       become_user: "{{ dev_user }}"
       tags: ["base", "bootstrap"]
 
     - name: Install Neovim plugins via Lazy.nvim
       ansible.builtin.shell: |
-        export PATH="/home/{{ dev_user }}/local/bin:$PATH"
+        export PATH=~{{ dev_user }}/local/bin:$PATH
         nvim --headless "+Lazy! sync" +qa
       become_user: "{{ dev_user }}"
       tags: ["base", "bootstrap"]
@@ -425,7 +428,7 @@
     # ==========================================================================
     - name: Ensure go-sdk directory exists
       ansible.builtin.file:
-        path: "/home/{{ dev_user }}/go-sdk"
+        path: "~{{ dev_user }}/go-sdk"
         state: directory
         owner: "{{ dev_user }}"
         group: "{{ dev_user }}"
@@ -436,18 +439,18 @@
     - name: Install Go SDK
       ansible.builtin.unarchive:
         src: "https://go.dev/dl/go{{ go_version }}.linux-{{ dpkg_arch }}.tar.gz"
-        dest: "/home/{{ dev_user }}/go-sdk"
+        dest: "~{{ dev_user }}/go-sdk"
         remote_src: true
         extra_opts:
           - --strip-components=1
-        creates: "/home/{{ dev_user }}/go-sdk/bin/go"
+        creates: "~{{ dev_user }}/go-sdk/bin/go"
       become_user: "{{ dev_user }}"
       tags: ["base", "go"]
 
     - name: Symlink Go binaries
       ansible.builtin.file:
-        src: "/home/{{ dev_user }}/go-sdk/bin/{{ item }}"
-        dest: "/home/{{ dev_user }}/local/bin/{{ item }}"
+        src: "~{{ dev_user }}/go-sdk/bin/{{ item }}"
+        dest: "~{{ dev_user }}/local/bin/{{ item }}"
         state: link
       loop: ["go", "gofmt"]
       become_user: "{{ dev_user }}"
@@ -455,26 +458,26 @@
 
     - name: Install gopls
       ansible.builtin.shell: |
-        export PATH="/home/{{ dev_user }}/local/bin:$PATH"
+        export PATH=~{{ dev_user }}/local/bin:$PATH
         go install golang.org/x/tools/gopls@{{ gopls_version }}
       become_user: "{{ dev_user }}"
       args:
-        creates: "/home/{{ dev_user }}/go/bin/gopls"
+        creates: "~{{ dev_user }}/go/bin/gopls"
       tags: ["base", "go"]
 
     - name: Install grpcurl
       ansible.builtin.shell: |
-        export PATH="/home/{{ dev_user }}/local/bin:$PATH"
+        export PATH=~{{ dev_user }}/local/bin:$PATH
         go install github.com/fullstorydev/grpcurl/cmd/grpcurl@{{ grpcurl_version }}
       become_user: "{{ dev_user }}"
       args:
-        creates: "/home/{{ dev_user }}/go/bin/grpcurl"
+        creates: "~{{ dev_user }}/go/bin/grpcurl"
       tags: ["base", "go"]
 
     - name: Install GitHub CLI
       ansible.builtin.unarchive:
         src: "https://github.com/cli/cli/releases/download/v{{ gh_cli_version }}/gh_{{ gh_cli_version }}_linux_{{ dpkg_arch }}.tar.gz"
-        dest: "/home/{{ dev_user }}/local/"
+        dest: "~{{ dev_user }}/local/"
         remote_src: true
         extra_opts:
           - --strip-components=1
@@ -486,24 +489,24 @@
         export PROFILE=/dev/null
         curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
       args:
-        creates: "/home/{{ dev_user }}/.nvm/nvm.sh"
+        creates: "~{{ dev_user }}/.nvm/nvm.sh"
       become_user: "{{ dev_user }}"
       tags: ["base", "node"]
 
     - name: Install Node.js via NVM
       ansible.builtin.shell: |
-        export NVM_DIR="/home/{{ dev_user }}/.nvm"
+        export NVM_DIR=~{{ dev_user }}/.nvm
         [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
         nvm install {{ node_version }}
         nvm alias default {{ node_version }}
       args:
-        creates: "/home/{{ dev_user }}/.nvm/versions/node/v{{ node_version }}/bin/node"
+        creates: "~{{ dev_user }}/.nvm/versions/node/v{{ node_version }}/bin/node"
       become_user: "{{ dev_user }}"
       tags: ["base", "node"]
 
     - name: Install global NPM packages
       ansible.builtin.shell: |
-        export PATH="/home/{{ dev_user }}/.nvm/versions/node/v{{ node_version }}/bin:$PATH"
+        export PATH=~{{ dev_user }}/.nvm/versions/node/v{{ node_version }}/bin:$PATH
         npm install -g \
           typescript@{{ typescript_version }} \
           ts-node@{{ ts_node_version }} \
@@ -511,14 +514,14 @@
           pnpm@{{ pnpm_version }} \
           @bazel/bazelisk@{{ bazelisk_version }}
       args:
-        creates: "/home/{{ dev_user }}/.nvm/versions/node/v{{ node_version }}/bin/pnpm"
+        creates: "~{{ dev_user }}/.nvm/versions/node/v{{ node_version }}/bin/pnpm"
       become_user: "{{ dev_user }}"
       tags: ["base", "node"]
 
     - name: Symlink Node and global packages to local/bin
       ansible.builtin.file:
-        src: "/home/{{ dev_user }}/.nvm/versions/node/v{{ node_version }}/bin/{{ item }}"
-        dest: "/home/{{ dev_user }}/local/bin/{{ item }}"
+        src: "~{{ dev_user }}/.nvm/versions/node/v{{ node_version }}/bin/{{ item }}"
+        dest: "~{{ dev_user }}/local/bin/{{ item }}"
         state: link
       loop:
         - node
@@ -537,43 +540,44 @@
       ansible.builtin.shell: |
         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
       args:
-        creates: "/home/{{ dev_user }}/.cargo/bin/rustup"
+        creates: "~{{ dev_user }}/.cargo/bin/rustup"
       become_user: "{{ dev_user }}"
       tags: ["base", "rust"]
 
     - name: Add rust-analyzer component
       ansible.builtin.shell: |
-        /home/{{ dev_user }}/.cargo/bin/rustup component add rust-analyzer
+        ~{{ dev_user }}/.cargo/bin/rustup component add rust-analyzer
       args:
-        creates: "/home/{{ dev_user }}/.cargo/bin/rust-analyzer"
+        creates: "~{{ dev_user }}/.cargo/bin/rust-analyzer"
       become_user: "{{ dev_user }}"
       tags: ["base", "rust"]
 
-    - name: Install jj-cli via cargo
-      ansible.builtin.shell: |
-        /home/{{ dev_user }}/.cargo/bin/cargo install jj-cli --version {{ jj_version }}
-      args:
-        creates: "/home/{{ dev_user }}/.cargo/bin/jj"
+    - name: Install jj-cli via pre-compiled binary
+      ansible.builtin.unarchive:
+        src: "https://github.com/martinvonz/jj/releases/download/v{{ jj_version }}/jj-v{{ jj_version }}-{{ zig_arch }}-unknown-linux-musl.tar.gz"
+        dest: "~{{ dev_user }}/local/bin"
+        remote_src: true
+        creates: "~{{ dev_user }}/local/bin/jj"
       become_user: "{{ dev_user }}"
       tags: ["base", "rust"]
 
     - name: Remove rust-docs component to save space
       ansible.builtin.shell: |
-        /home/{{ dev_user }}/.cargo/bin/rustup component remove rust-docs
+        ~{{ dev_user }}/.cargo/bin/rustup component remove rust-docs
       become_user: "{{ dev_user }}"
       ignore_errors: true
       tags: ["base", "rust"]
 
     - name: Configure jj-cli user details
       ansible.builtin.shell: |
-        /home/{{ dev_user }}/.cargo/bin/jj config set --user user.name "Drew Willey"
-        /home/{{ dev_user }}/.cargo/bin/jj config set --user user.email "andwilley@gmail.com"
+        ~{{ dev_user }}/local/bin/jj config set --user user.name "Drew Willey"
+        ~{{ dev_user }}/local/bin/jj config set --user user.email "andwilley@gmail.com"
       become_user: "{{ dev_user }}"
       tags: ["base", "rust"]
 
     - name: Clean Cargo registry cache subdirectories
       ansible.builtin.file:
-        path: "/home/{{ dev_user }}/.cargo/registry/{{ item }}"
+        path: "~{{ dev_user }}/.cargo/registry/{{ item }}"
         state: absent
       loop:
         - src
@@ -583,40 +587,40 @@
 
     - name: Symlink Rust binaries
       ansible.builtin.file:
-        src: "/home/{{ dev_user }}/.cargo/bin/{{ item }}"
-        dest: "/home/{{ dev_user }}/local/bin/{{ item }}"
+        src: "~{{ dev_user }}/.cargo/bin/{{ item }}"
+        dest: "~{{ dev_user }}/local/bin/{{ item }}"
         state: link
-      loop: ["rustc", "cargo", "rustup", "jj"]
+      loop: ["rustc", "cargo", "rustup"]
       become_user: "{{ dev_user }}"
       tags: ["base", "rust"]
 
     - name: Install Starpls (Bazel build)
       ansible.builtin.shell: |
-        export PATH="/home/{{ dev_user }}/local/bin:$PATH"
+        export PATH=~{{ dev_user }}/local/bin:$PATH
         rm -rf /tmp/starpls
         git clone --depth 1 --branch {{ starpls_version }} https://github.com/withered-magic/starpls.git /tmp/starpls
         cd /tmp/starpls
         bazel run -c opt //editors/code:copy_starpls
-        cp /tmp/starpls/editors/code/bin/starpls /home/{{ dev_user }}/local/bin/
+        cp /tmp/starpls/editors/code/bin/starpls ~{{ dev_user }}/local/bin/
         rm -rf /tmp/starpls
       become_user: "{{ dev_user }}"
       args:
-        creates: "/home/{{ dev_user }}/local/bin/starpls"
-      tags: ["base", "lsp"]
+        creates: "~{{ dev_user }}/local/bin/starpls"
+      tags: ["starpls"]
 
     # --- Standalone Agents (Claude Code & Antigravity CLI) ---
     - name: Install Claude Code (native installer)
       ansible.builtin.shell: |
         curl -fsSL https://claude.ai/install.sh | bash
       args:
-        creates: "/home/{{ dev_user }}/.local/bin/claude"
+        creates: "~{{ dev_user }}/.local/bin/claude"
       become_user: "{{ dev_user }}"
       tags: agents
 
     - name: Symlink Claude to local/bin
       ansible.builtin.file:
-        src: "/home/{{ dev_user }}/.local/bin/claude"
-        dest: "/home/{{ dev_user }}/local/bin/claude"
+        src: "~{{ dev_user }}/.local/bin/claude"
+        dest: "~{{ dev_user }}/local/bin/claude"
         state: link
       become_user: "{{ dev_user }}"
       tags: agents
@@ -625,14 +629,14 @@
       ansible.builtin.shell: |
         curl -fsSL https://antigravity.google/cli/install.sh | bash
       args:
-        creates: "/home/{{ dev_user }}/.local/bin/agy"
+        creates: "~{{ dev_user }}/.local/bin/agy"
       become_user: "{{ dev_user }}"
       tags: agents
 
     - name: Symlink Antigravity CLI to local/bin
       ansible.builtin.file:
-        src: "/home/{{ dev_user }}/.local/bin/agy"
-        dest: "/home/{{ dev_user }}/local/bin/{{ item }}"
+        src: "~{{ dev_user }}/.local/bin/agy"
+        dest: "~{{ dev_user }}/local/bin/{{ item }}"
         state: link
         force: true
       loop:
@@ -643,7 +647,7 @@
 
     - name: Remove Antigravity configuration from .bashrc
       ansible.builtin.replace:
-        path: "/home/{{ dev_user }}/.bashrc"
+        path: "~{{ dev_user }}/.bashrc"
         regexp: '# Added by Antigravity CLI installer\r?\nexport PATH=".*\.local/bin:\$PATH"\r?\n?'
         replace: ""
       become_user: "{{ dev_user }}"
@@ -651,14 +655,14 @@
 
     - name: Check if .bash_profile exists
       ansible.builtin.stat:
-        path: "/home/{{ dev_user }}/.bash_profile"
+        path: "~{{ dev_user }}/.bash_profile"
       register: bash_profile_stat
       become_user: "{{ dev_user }}"
       tags: agents
 
     - name: Remove Antigravity configuration from .bash_profile
       ansible.builtin.replace:
-        path: "/home/{{ dev_user }}/.bash_profile"
+        path: "~{{ dev_user }}/.bash_profile"
         regexp: '# Added by Antigravity CLI installer\r?\nexport PATH=".*\.local/bin:\$PATH"\r?\n?'
         replace: ""
       become_user: "{{ dev_user }}"
@@ -667,14 +671,14 @@
 
     - name: Check if config.fish exists
       ansible.builtin.stat:
-        path: "/home/{{ dev_user }}/.config/fish/config.fish"
+        path: "~{{ dev_user }}/.config/fish/config.fish"
       register: config_fish_stat
       become_user: "{{ dev_user }}"
       tags: agents
 
     - name: Remove Antigravity configuration from config.fish
       ansible.builtin.replace:
-        path: "/home/{{ dev_user }}/.config/fish/config.fish"
+        path: "~{{ dev_user }}/.config/fish/config.fish"
         regexp: '# Added by Antigravity CLI installer\r?\nset -gx PATH ".*\.local/bin" \$PATH\r?\n?'
         replace: ""
       become_user: "{{ dev_user }}"
@@ -694,65 +698,65 @@
 
     - name: Install Arduino CLI
       ansible.builtin.shell: |
-        curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=/home/{{ dev_user }}/local/bin sh
+        curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=~{{ dev_user }}/local/bin sh
       args:
-        creates: "/home/{{ dev_user }}/local/bin/arduino-cli"
+        creates: "~{{ dev_user }}/local/bin/arduino-cli"
       become_user: "{{ dev_user }}"
       tags: arduino
 
     - name: Check Arduino CLI config
       ansible.builtin.stat:
-        path: "/home/{{ dev_user }}/.arduino15/arduino-cli.yaml"
+        path: "~{{ dev_user }}/.arduino15/arduino-cli.yaml"
       register: arduino_config_stat
       become_user: "{{ dev_user }}"
       tags: arduino
 
     - name: Initialize Arduino CLI config
       ansible.builtin.shell: |
-        /home/{{ dev_user }}/local/bin/arduino-cli config init
+        ~{{ dev_user }}/local/bin/arduino-cli config init
       become_user: "{{ dev_user }}"
       when: not arduino_config_stat.stat.exists
       tags: arduino
 
     - name: Install Arduino AVR Core
       ansible.builtin.shell: |
-        /home/{{ dev_user }}/local/bin/arduino-cli core update-index
-        /home/{{ dev_user }}/local/bin/arduino-cli core install arduino:avr
+        ~{{ dev_user }}/local/bin/arduino-cli core update-index
+        ~{{ dev_user }}/local/bin/arduino-cli core install arduino:avr
       become_user: "{{ dev_user }}"
       args:
-        creates: "/home/{{ dev_user }}/.arduino15/packages/arduino/hardware/avr"
+        creates: "~{{ dev_user }}/.arduino15/packages/arduino/hardware/avr"
       tags: arduino
 
     - name: Install Arduino Language Server
       ansible.builtin.shell: |
-        export PATH="/home/{{ dev_user }}/local/bin:$PATH"
+        export PATH=~{{ dev_user }}/local/bin:$PATH
         go install github.com/arduino/arduino-language-server@{{ arduino_ls_version }}
       args:
-        creates: "/home/{{ dev_user }}/go/bin/arduino-language-server"
+        creates: "~{{ dev_user }}/go/bin/arduino-language-server"
       become_user: "{{ dev_user }}"
       tags: arduino
 
     - name: Symlink Arduino Language Server
       ansible.builtin.file:
-        src: "/home/{{ dev_user }}/go/bin/arduino-language-server"
-        dest: "/home/{{ dev_user }}/local/bin/arduino-language-server"
+        src: "~{{ dev_user }}/go/bin/arduino-language-server"
+        dest: "~{{ dev_user }}/local/bin/arduino-language-server"
         state: link
       become_user: "{{ dev_user }}"
       tags: arduino
 
     - name: Install ravedude cargo utility
       ansible.builtin.shell: |
-        /home/{{ dev_user }}/.cargo/bin/cargo +stable install ravedude --version {{ ravedude_version }}
+        ~{{ dev_user }}/.cargo/bin/cargo +stable install ravedude --version {{ ravedude_version }}
       args:
-        creates: "/home/{{ dev_user }}/.cargo/bin/ravedude"
+        creates: "~{{ dev_user }}/.cargo/bin/ravedude"
       become_user: "{{ dev_user }}"
       tags: arduino
 
     - name: Install cargo-generate utility
       ansible.builtin.shell: |
-        /home/{{ dev_user }}/.cargo/bin/cargo install cargo-generate --version {{ cargo_generate_version }}
+        ~{{ dev_user }}/.cargo/bin/cargo install cargo-generate --version {{ cargo_generate_version }}
       args:
-        creates: "/home/{{ dev_user }}/.cargo/bin/cargo-generate"
+        creates: "~{{ dev_user }}/.cargo/bin/cargo-generate"
       become_user: "{{ dev_user }}"
       tags: arduino
 
@@ -761,13 +765,13 @@
       ansible.builtin.shell: |
         curl -s "https://get.sdkman.io" | bash
       args:
-        creates: "/home/{{ dev_user }}/.sdkman/bin/sdkman-init.sh"
+        creates: "~{{ dev_user }}/.sdkman/bin/sdkman-init.sh"
       become_user: "{{ dev_user }}"
       tags: jvm
 
     - name: Remove SDKMAN configuration from .bashrc
       ansible.builtin.replace:
-        path: "/home/{{ dev_user }}/.bashrc"
+        path: "~{{ dev_user }}/.bashrc"
         regexp: '#THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!\r?\nexport SDKMAN_DIR=.*\r?\n.*sdkman-init\.sh.*'
         replace: ""
       become_user: "{{ dev_user }}"
@@ -775,52 +779,52 @@
 
     - name: Install Java via SDKMAN
       ansible.builtin.shell: |
-        source "/home/{{ dev_user }}/.sdkman/bin/sdkman-init.sh"
+        source ~{{ dev_user }}/.sdkman/bin/sdkman-init.sh
         export sdkman_auto_answer=true
         sdk install java 21.0.7-tem
       args:
         executable: /bin/bash
-        creates: "/home/{{ dev_user }}/.sdkman/candidates/java/current/bin/java"
+        creates: "~{{ dev_user }}/.sdkman/candidates/java/current/bin/java"
       become_user: "{{ dev_user }}"
       tags: jvm
 
     - name: Install Kotlin via SDKMAN
       ansible.builtin.shell: |
-        source "/home/{{ dev_user }}/.sdkman/bin/sdkman-init.sh"
+        source ~{{ dev_user }}/.sdkman/bin/sdkman-init.sh
         export sdkman_auto_answer=true
         sdk install kotlin {{ kotlin_version }}
       args:
         executable: /bin/bash
-        creates: "/home/{{ dev_user }}/.sdkman/candidates/kotlin/current/bin/kotlin"
+        creates: "~{{ dev_user }}/.sdkman/candidates/kotlin/current/bin/kotlin"
       become_user: "{{ dev_user }}"
       tags: jvm
 
     - name: Install Gradle via SDKMAN
       ansible.builtin.shell: |
-        source "/home/{{ dev_user }}/.sdkman/bin/sdkman-init.sh"
+        source ~{{ dev_user }}/.sdkman/bin/sdkman-init.sh
         export sdkman_auto_answer=true
         sdk install gradle {{ gradle_version }}
       args:
         executable: /bin/bash
-        creates: "/home/{{ dev_user }}/.sdkman/candidates/gradle/current/bin/gradle"
+        creates: "~{{ dev_user }}/.sdkman/candidates/gradle/current/bin/gradle"
       become_user: "{{ dev_user }}"
       tags: jvm
 
     - name: Install Maven via SDKMAN
       ansible.builtin.shell: |
-        source "/home/{{ dev_user }}/.sdkman/bin/sdkman-init.sh"
+        source ~{{ dev_user }}/.sdkman/bin/sdkman-init.sh
         export sdkman_auto_answer=true
         sdk install maven {{ maven_version }}
       args:
         executable: /bin/bash
-        creates: "/home/{{ dev_user }}/.sdkman/candidates/maven/current/bin/mvn"
+        creates: "~{{ dev_user }}/.sdkman/candidates/maven/current/bin/mvn"
       become_user: "{{ dev_user }}"
       tags: jvm
 
     - name: Symlink JVM binaries to local/bin
       ansible.builtin.file:
-        src: "/home/{{ dev_user }}/.sdkman/candidates/{{ item.candidate }}/current/bin/{{ item.binary }}"
-        dest: "/home/{{ dev_user }}/local/bin/{{ item.binary }}"
+        src: "~{{ dev_user }}/.sdkman/candidates/{{ item.candidate }}/current/bin/{{ item.binary }}"
+        dest: "~{{ dev_user }}/local/bin/{{ item.binary }}"
         state: link
       loop:
         - { candidate: "java", binary: "java" }
@@ -837,39 +841,39 @@
       ansible.builtin.shell: |
         curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | BOOTSTRAP_HASKELL_MINIMAL=1 sh -s -- -c
       args:
-        creates: "/home/{{ dev_user }}/.ghcup/bin/ghcup"
+        creates: "~{{ dev_user }}/.ghcup/bin/ghcup"
       become_user: "{{ dev_user }}"
       tags: haskell
 
     - name: Install GHC compiler via GHCup
       ansible.builtin.shell: |
-        /home/{{ dev_user }}/.ghcup/bin/ghcup install ghc {{ ghc_version }}
-        /home/{{ dev_user }}/.ghcup/bin/ghcup set ghc {{ ghc_version }}
+        ~{{ dev_user }}/.ghcup/bin/ghcup install ghc {{ ghc_version }}
+        ~{{ dev_user }}/.ghcup/bin/ghcup set ghc {{ ghc_version }}
       args:
-        creates: "/home/{{ dev_user }}/.ghcup/bin/ghc"
+        creates: "~{{ dev_user }}/.ghcup/bin/ghc"
       become_user: "{{ dev_user }}"
       tags: haskell
 
     - name: Install Cabal via GHCup
       ansible.builtin.shell: |
-        /home/{{ dev_user }}/.ghcup/bin/ghcup install cabal {{ cabal_version }}
+        ~{{ dev_user }}/.ghcup/bin/ghcup install cabal {{ cabal_version }}
       args:
-        creates: "/home/{{ dev_user }}/.ghcup/bin/cabal"
+        creates: "~{{ dev_user }}/.ghcup/bin/cabal"
       become_user: "{{ dev_user }}"
       tags: haskell
 
     - name: Install Haskell Language Server (HLS) via GHCup
       ansible.builtin.shell: |
-        /home/{{ dev_user }}/.ghcup/bin/ghcup install hls {{ hls_version }}
+        ~{{ dev_user }}/.ghcup/bin/ghcup install hls {{ hls_version }}
       args:
-        creates: "/home/{{ dev_user }}/.ghcup/bin/haskell-language-server-wrapper"
+        creates: "~{{ dev_user }}/.ghcup/bin/haskell-language-server-wrapper"
       become_user: "{{ dev_user }}"
       tags: haskell
 
     - name: Symlink Haskell binaries to local/bin
       ansible.builtin.file:
-        src: "/home/{{ dev_user }}/.ghcup/bin/{{ item.src }}"
-        dest: "/home/{{ dev_user }}/local/bin/{{ item.dest }}"
+        src: "~{{ dev_user }}/.ghcup/bin/{{ item.src }}"
+        dest: "~{{ dev_user }}/local/bin/{{ item.dest }}"
         state: link
       loop:
         - { src: "ghc", dest: "ghc" }
@@ -881,13 +885,13 @@
 
     - name: Update Cabal package database
       ansible.builtin.shell: |
-        /home/{{ dev_user }}/local/bin/cabal update
+        ~{{ dev_user }}/local/bin/cabal update
       become_user: "{{ dev_user }}"
       tags: haskell
 
     - name: Remove GHCup configuration from .bashrc
       ansible.builtin.lineinfile:
-        path: "/home/{{ dev_user }}/.bashrc"
+        path: "~{{ dev_user }}/.bashrc"
         regexp: '.*\.ghcup/env.*'
         state: absent
       become_user: "{{ dev_user }}"
@@ -897,33 +901,33 @@
     - name: Download OPAM binary
       ansible.builtin.get_url:
         url: "https://github.com/ocaml/opam/releases/download/2.2.0/opam-2.2.0-{{ opam_arch }}-linux"
-        dest: "/home/{{ dev_user }}/local/bin/opam"
+        dest: "~{{ dev_user }}/local/bin/opam"
         mode: "0755"
       become_user: "{{ dev_user }}"
       tags: ocaml
 
     - name: Initialize OPAM
       ansible.builtin.shell: |
-        /home/{{ dev_user }}/local/bin/opam init --disable-sandboxing --no-setup -y
+        ~{{ dev_user }}/local/bin/opam init --disable-sandboxing --no-setup -y
       args:
-        creates: "/home/{{ dev_user }}/.opam/opam-init/init.sh"
+        creates: "~{{ dev_user }}/.opam/opam-init/init.sh"
       become_user: "{{ dev_user }}"
       tags: ocaml
 
     - name: Install OCaml ecosystem packages
       ansible.builtin.shell: |
-        . /home/{{ dev_user }}/.opam/opam-init/init.sh
-        /home/{{ dev_user }}/local/bin/opam install -y utop ocaml-lsp-server ocamlformat odoc dune merlin
+        . ~{{ dev_user }}/.opam/opam-init/init.sh
+        ~{{ dev_user }}/local/bin/opam install -y utop ocaml-lsp-server ocamlformat odoc dune merlin
       args:
         executable: /bin/bash
-        creates: "/home/{{ dev_user }}/.opam/default/bin/dune"
+        creates: "~{{ dev_user }}/.opam/default/bin/dune"
       become_user: "{{ dev_user }}"
       tags: ocaml
 
     - name: Symlink OCaml ecosystem binaries to local/bin
       ansible.builtin.file:
-        src: "/home/{{ dev_user }}/.opam/default/bin/{{ item }}"
-        dest: "/home/{{ dev_user }}/local/bin/{{ item }}"
+        src: "~{{ dev_user }}/.opam/default/bin/{{ item }}"
+        dest: "~{{ dev_user }}/local/bin/{{ item }}"
         state: link
       loop:
         - utop
@@ -938,7 +942,7 @@
     # --- SPOKE 5: ZIG ---
     - name: Ensure Zig compiler directory exists
       ansible.builtin.file:
-        path: "/home/{{ dev_user }}/local/zig-compiler"
+        path: "~{{ dev_user }}/local/zig-compiler"
         state: directory
         owner: "{{ dev_user }}"
         group: "{{ dev_user }}"
@@ -949,18 +953,18 @@
     - name: Install Zig Compiler
       ansible.builtin.unarchive:
         src: "https://ziglang.org/download/{{ zig_version }}/zig-linux-{{ zig_arch }}-{{ zig_version }}.tar.xz"
-        dest: "/home/{{ dev_user }}/local/zig-compiler"
+        dest: "~{{ dev_user }}/local/zig-compiler"
         remote_src: true
         extra_opts:
           - --strip-components=1
-        creates: "/home/{{ dev_user }}/local/zig-compiler/zig"
+        creates: "~{{ dev_user }}/local/zig-compiler/zig"
       become_user: "{{ dev_user }}"
       tags: zig
 
     - name: Symlink Zig binary
       ansible.builtin.file:
-        src: "/home/{{ dev_user }}/local/zig-compiler/zig"
-        dest: "/home/{{ dev_user }}/local/bin/zig"
+        src: "~{{ dev_user }}/local/zig-compiler/zig"
+        dest: "~{{ dev_user }}/local/bin/zig"
         state: link
       become_user: "{{ dev_user }}"
       tags: zig
@@ -990,21 +994,21 @@
         ./swiftly init --verbose --assume-yes
         rm -rf /tmp/swiftly-installer
       args:
-        creates: "/home/{{ dev_user }}/.local/bin/swiftly"
+        creates: "~{{ dev_user }}/.local/bin/swiftly"
       become_user: "{{ dev_user }}"
       tags: swift
 
     - name: Symlink swiftly to local/bin
       ansible.builtin.file:
-        src: "/home/{{ dev_user }}/.local/bin/swiftly"
-        dest: "/home/{{ dev_user }}/local/bin/swiftly"
+        src: "~{{ dev_user }}/.local/bin/swiftly"
+        dest: "~{{ dev_user }}/local/bin/swiftly"
         state: link
       become_user: "{{ dev_user }}"
       tags: swift
 
     - name: Remove Swiftly configuration from .bashrc
       ansible.builtin.lineinfile:
-        path: "/home/{{ dev_user }}/.bashrc"
+        path: "~{{ dev_user }}/.bashrc"
         regexp: ".*swiftly/env.*"
         state: absent
       become_user: "{{ dev_user }}"
@@ -1012,8 +1016,8 @@
 
     - name: Symlink Swift compiler binaries to local/bin
       ansible.builtin.file:
-        src: "/home/{{ dev_user }}/.local/share/swiftly/bin/{{ item }}"
-        dest: "/home/{{ dev_user }}/local/bin/{{ item }}"
+        src: "~{{ dev_user }}/.local/share/swiftly/bin/{{ item }}"
+        dest: "~{{ dev_user }}/local/bin/{{ item }}"
         state: link
         force: true
       loop:
