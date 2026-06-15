@@ -27,3 +27,4 @@
 /.config/fish/fish_variables
 !/.tmux/plugins/tpm
 !GEMINI.md
+.config/jj/repos/
