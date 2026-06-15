@@ -210,6 +210,7 @@
         owner: "{{ dev_user }}"
         group: "{{ dev_user }}"
         mode: "0755"
+      become_user: "{{ dev_user }}"
       tags: ["base", "bootstrap"]
 
     - name: Ensure Ansible remote temporary directory exists with correct permissions
@@ -219,12 +220,14 @@
         owner: "{{ dev_user }}"
         group: "{{ dev_user }}"
         mode: "0755"
+      become_user: "{{ dev_user }}"
       tags: ["base", "bootstrap"]
 
     - name: Check if Neovim is already installed
       ansible.builtin.stat:
         path: "~{{ dev_user }}/local/bin/nvim"
       register: nvim_stat
+      become_user: "{{ dev_user }}"
       tags: ["base", "bootstrap"]
 
     - name: Download and install Neovim (AMD64 Binary)
