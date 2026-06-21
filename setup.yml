@@ -47,7 +47,7 @@
     dev_user: rafiki
     ansible_python_interpreter: /usr/bin/python3
     # --- Pinned Tool Versions (Base) ---
-    llvm_version: "18"
+    llvm_version: "22"
     neovim_version: "v0.12.3"
     nvim_config_version: "main"
     dotfiles_version: "master"
@@ -372,7 +372,7 @@
         name: docker
         types: deb
         uris: https://download.docker.com/linux/debian
-        suites: bookworm
+        suites: trixie
         components: stable
         architectures: "{{ dpkg_arch }}"
         signed_by: /etc/apt/keyrings/docker.asc
@@ -559,10 +559,9 @@
       tags: ["base", "rust"]
 
     - name: Add rust-analyzer component
-      ansible.builtin.shell: |
-        ~{{ dev_user }}/.cargo/bin/rustup component add rust-analyzer
-      args:
-        creates: "~{{ dev_user }}/.cargo/bin/rust-analyzer"
+      ansible.builtin.command: "~{{ dev_user }}/.cargo/bin/rustup component add rust-analyzer"
+      register: rust_analyzer_install
+      changed_when: "'info: downloading component' in rust_analyzer_install.stderr"
       become_user: "{{ dev_user }}"
       tags: ["base", "rust"]
 
@@ -604,7 +603,7 @@
         src: "~{{ dev_user }}/.cargo/bin/{{ item }}"
         dest: "~{{ dev_user }}/local/bin/{{ item }}"
         state: link
-      loop: ["rustc", "cargo", "rustup"]
+      loop: ["rustc", "cargo", "rustup", "rust-analyzer"]
       become_user: "{{ dev_user }}"
       tags: ["base", "rust"]
 
