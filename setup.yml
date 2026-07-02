@@ -64,7 +64,6 @@
     bazelisk_version: "1.19.0"
     jj_version: "0.41.0"
     # --- Pinned Tool Versions (Spokes) ---
-    arduino_ls_version: "0.7.6"
     ravedude_version: "0.1.8"
     cargo_generate_version: "0.21.0"
     kotlin_version: "2.4.0"
@@ -738,23 +737,6 @@
       become_user: "{{ dev_user }}"
       args:
         creates: "~{{ dev_user }}/.arduino15/packages/arduino/hardware/avr"
-      tags: arduino
-
-    - name: Install Arduino Language Server
-      ansible.builtin.shell: |
-        export PATH=~{{ dev_user }}/local/bin:$PATH
-        go install github.com/arduino/arduino-language-server@{{ arduino_ls_version }}
-      args:
-        creates: "~{{ dev_user }}/go/bin/arduino-language-server"
-      become_user: "{{ dev_user }}"
-      tags: arduino
-
-    - name: Symlink Arduino Language Server
-      ansible.builtin.file:
-        src: "~{{ dev_user }}/go/bin/arduino-language-server"
-        dest: "~{{ dev_user }}/local/bin/arduino-language-server"
-        state: link
-      become_user: "{{ dev_user }}"
       tags: arduino
 
     - name: Install ravedude cargo utility
