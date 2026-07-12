@@ -105,8 +105,5 @@ if ! shopt -oq posix; then
   fi
 fi
 
-# nice bash
-eval "$(starship init bash)"
-
 # OCAML OPAM configuration if it exists
 [ -r "$HOME/.opam/opam-init/init.sh" ] && . "$HOME/.opam/opam-init/init.sh" > /dev/null 2> /dev/null
