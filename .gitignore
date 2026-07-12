@@ -23,6 +23,7 @@
 /.config/*
 !/.config/starship.toml
 !/.config/jj
+/.config/jj/repos
 !/.config/fish
 /.config/fish/fish_variables
 !/.tmux/plugins/tpm
