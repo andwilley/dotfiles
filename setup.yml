@@ -29,7 +29,7 @@
 # - gcloud    : Google Cloud SDK cli
 # - agents    : Claude Code and Antigravity CLI agents
 # - go        : Go SDK, gopls, grpcurl
-# - rust      : Rustup, cargo, rust-analyzer, jj-cli
+# - rust      : Rustup, cargo, rust-analyzer, cargo-nextest, jj-cli
 # - starpls   : Starpls (Bazel compiled) (Must be invoked explicitly to prevent OOM errors)
 # - arduino   : avr-libc, avrdude, arduino-cli, ravedude
 # - jvm       : SDKMAN, Java 21, Kotlin, Gradle, Maven
@@ -63,6 +63,7 @@
     pnpm_version: "11.6.0"
     bazelisk_version: "1.19.0"
     jj_version: "0.41.0"
+    nextest_version: "0.9.146"
     # --- Pinned Tool Versions (Spokes) ---
     ravedude_version: "0.1.8"
     cargo_generate_version: "0.21.0"
@@ -160,6 +161,7 @@
           - dpkg
           - lsof
           - less
+          - ripgrep
           - strace
           - htop
           - tcpdump
@@ -584,6 +586,15 @@
       ansible.builtin.shell: |
         ~{{ dev_user }}/local/bin/jj config set --user user.name "Drew Willey"
         ~{{ dev_user }}/local/bin/jj config set --user user.email "andwilley@gmail.com"
+      become_user: "{{ dev_user }}"
+      tags: ["base", "rust"]
+
+    - name: Install cargo-nextest via pre-built binary
+      ansible.builtin.shell: |
+        curl -LsSf https://get.nexte.st/{{ nextest_version }}/{{ 'linux' if ansible_facts['architecture'] == 'x86_64' else 'linux-arm' }} \
+          | tar zxf - -C ~{{ dev_user }}/local/bin
+      args:
+        creates: "~{{ dev_user }}/local/bin/cargo-nextest"
       become_user: "{{ dev_user }}"
       tags: ["base", "rust"]
 
