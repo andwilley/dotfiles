@@ -20,6 +20,6 @@ function workspace_start -d "Start the Docker dev workspace"
             -p 8080:8080 -p 2222:22 -p 3000:3000 --network dev-net \
             -v /var/run/docker.sock:/var/run/docker.sock \
             -v ~/projects:/home/rafiki/projects \
-            debian:bookworm
+            debian:trixie
     end
 end

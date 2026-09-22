@@ -152,7 +152,6 @@
           - zip
           - gdb
           - lsb-release
-          - software-properties-common
           - zlib1g-dev
           - iputils-ping
           - net-tools
