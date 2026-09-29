@@ -61,6 +61,7 @@
     ts_node_version: "10.9.2"
     yarn_version: "1.22.22"
     pnpm_version: "11.6.0"
+    prettier_version: "3.9.9"
     bazelisk_version: "1.19.0"
     jj_version: "0.41.0"
     nextest_version: "0.9.146"
@@ -526,9 +527,10 @@
           ts-node@{{ ts_node_version }} \
           yarn@{{ yarn_version }} \
           pnpm@{{ pnpm_version }} \
+          prettier@{{ prettier_version }} \
           @bazel/bazelisk@{{ bazelisk_version }}
       args:
-        creates: "~{{ dev_user }}/.nvm/versions/node/v{{ node_version }}/bin/pnpm"
+        creates: "~{{ dev_user }}/.nvm/versions/node/v{{ node_version }}/bin/prettier"
       become_user: "{{ dev_user }}"
       tags: ["base", "node"]
 
@@ -545,6 +547,7 @@
         - ts-node
         - yarn
         - pnpm
+        - prettier
         - bazel
         - bazelisk
       become_user: "{{ dev_user }}"
