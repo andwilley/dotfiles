@@ -3,6 +3,7 @@
 
 # but not these dotfiles
 !README.md
+!embedded.md
 !.gitignore
 !.gitignore_global
 !.gitconfig
