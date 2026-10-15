@@ -31,7 +31,10 @@
 # - go        : Go SDK, gopls, grpcurl
 # - rust      : Rustup, cargo, rust-analyzer, cargo-nextest, jj-cli
 # - starpls   : Starpls (Bazel compiled) (Must be invoked explicitly to prevent OOM errors)
-# - arduino   : avr-libc, avrdude, arduino-cli, ravedude
+# - embedded  : AVR (avr-libc, avrdude, arduino-cli, ravedude) plus
+#               RP2040/RP2350 (arm-none-eabi gcc, pico-sdk, picotool,
+#               rust thumb targets, flip-link). Needs the 'rust' tag for
+#               the cargo tasks. AVR tasks are also tagged 'arduino'.
 # - jvm       : SDKMAN, Java 21, Kotlin, Gradle, Maven
 # - haskell   : GHCup, GHC, Cabal, HLS
 # - ocaml     : OPAM, utop, dune, merlin, ocaml-lsp-server
@@ -68,6 +71,10 @@
     # --- Pinned Tool Versions (Spokes) ---
     ravedude_version: "0.1.8"
     cargo_generate_version: "0.21.0"
+    # pico_sdk_version must match the picotool version packaged in Debian,
+    # or CMake builds its own picotool from git (needs libusb + pkg-config).
+    pico_sdk_version: "2.1.1"
+    flip_link_version: "0.1.12"
     kotlin_version: "2.4.0"
     gradle_version: "9.5.1"
     maven_version: "3.9.6"
@@ -714,12 +721,14 @@
     # THE SPOKES
     # ==========================================================================
 
-    # --- SPOKE 1: ARDUINO ---
+    # --- SPOKE 1: EMBEDDED (AVR + RP2040/RP2350) ---
+
+    # --- AVR / Arduino ---
     - name: Install Arduino OS Dependencies
       ansible.builtin.apt:
         name: ["avr-libc", "gcc-avr", "avrdude", "libudev-dev"]
         state: present
-      tags: arduino
+      tags: ["embedded", "arduino"]
 
     - name: Install Arduino CLI
       ansible.builtin.shell: |
@@ -727,21 +736,21 @@
       args:
         creates: "~{{ dev_user }}/local/bin/arduino-cli"
       become_user: "{{ dev_user }}"
-      tags: arduino
+      tags: ["embedded", "arduino"]
 
     - name: Check Arduino CLI config
       ansible.builtin.stat:
         path: "~{{ dev_user }}/.arduino15/arduino-cli.yaml"
       register: arduino_config_stat
       become_user: "{{ dev_user }}"
-      tags: arduino
+      tags: ["embedded", "arduino"]
 
     - name: Initialize Arduino CLI config
       ansible.builtin.shell: |
         ~{{ dev_user }}/local/bin/arduino-cli config init
       become_user: "{{ dev_user }}"
       when: not arduino_config_stat.stat.exists
-      tags: arduino
+      tags: ["embedded", "arduino"]
 
     - name: Install Arduino AVR Core
       ansible.builtin.shell: |
@@ -750,7 +759,7 @@
       become_user: "{{ dev_user }}"
       args:
         creates: "~{{ dev_user }}/.arduino15/packages/arduino/hardware/avr"
-      tags: arduino
+      tags: ["embedded", "arduino"]
 
     - name: Install ravedude cargo utility
       ansible.builtin.shell: |
@@ -758,7 +767,7 @@
       args:
         creates: "~{{ dev_user }}/.cargo/bin/ravedude"
       become_user: "{{ dev_user }}"
-      tags: arduino
+      tags: ["embedded", "arduino"]
 
     - name: Install cargo-generate utility
       ansible.builtin.shell: |
@@ -766,7 +775,67 @@
       args:
         creates: "~{{ dev_user }}/.cargo/bin/cargo-generate"
       become_user: "{{ dev_user }}"
-      tags: arduino
+      tags: ["embedded", "arduino"]
+
+    # --- Raspberry Pi Pico (RP2040 / RP2350) ---
+    - name: Install Pico OS dependencies
+      ansible.builtin.apt:
+        name:
+          - gcc-arm-none-eabi
+          - libnewlib-arm-none-eabi
+          - libstdc++-arm-none-eabi-newlib
+          - picotool
+          - tio
+          - libusb-1.0-0-dev
+          - pkg-config
+        state: present
+      tags: embedded
+
+    - name: Ensure pico directory exists
+      ansible.builtin.file:
+        path: "~{{ dev_user }}/local/pico"
+        state: directory
+        owner: "{{ dev_user }}"
+        group: "{{ dev_user }}"
+        mode: "0755"
+      tags: embedded
+
+    - name: Clone pico-sdk
+      ansible.builtin.shell: |
+        git clone --branch {{ pico_sdk_version }} --depth 1 \
+          --recurse-submodules --shallow-submodules \
+          https://github.com/raspberrypi/pico-sdk.git \
+          ~{{ dev_user }}/local/pico/pico-sdk
+      args:
+        creates: "~{{ dev_user }}/local/pico/pico-sdk/pico_sdk_init.cmake"
+      become_user: "{{ dev_user }}"
+      tags: embedded
+
+    - name: Clone pico-examples
+      ansible.builtin.shell: |
+        git clone --branch sdk-{{ pico_sdk_version }} --depth 1 \
+          https://github.com/raspberrypi/pico-examples.git \
+          ~{{ dev_user }}/local/pico/pico-examples
+      args:
+        creates: "~{{ dev_user }}/local/pico/pico-examples/CMakeLists.txt"
+      become_user: "{{ dev_user }}"
+      tags: embedded
+
+    - name: Add Rust bare-metal targets for RP2040 and RP2350
+      ansible.builtin.command: "~{{ dev_user }}/.cargo/bin/rustup target add {{ item }}"
+      loop: ["thumbv6m-none-eabi", "thumbv8m.main-none-eabihf"]
+      register: pico_rust_targets
+      changed_when: "'info: downloading component' in pico_rust_targets.stderr"
+      become_user: "{{ dev_user }}"
+      tags: embedded
+
+    - name: Install flip-link linker wrapper
+      ansible.builtin.shell: |
+        ~{{ dev_user }}/.cargo/bin/cargo install flip-link --version {{ flip_link_version }}
+      args:
+        creates: "~{{ dev_user }}/.cargo/bin/flip-link"
+      become_user: "{{ dev_user }}"
+      tags: embedded
 
     # --- SPOKE 2: JVM ---
     - name: Install SDKMAN

@@ -16,6 +16,9 @@ Create/start a container (default name `workspace`):
 workspace_start rust
 ```
 
+Only one container can publish 8080/2222/3000, so any additional one needs
+`workspace_start embed --no-ports`.
+
 Provision it — the play installs its own python3, no prep needed:
 
 ```fish
@@ -37,3 +40,7 @@ Once inside, for docker-out-of-docker via the mounted socket:
 ```fish
 d_out_d
 ```
+
+## Embedded
+
+AVR and Raspberry Pi Pico: see [embedded.md](embedded.md).
